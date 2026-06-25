@@ -226,7 +226,7 @@ function TopBar({
         </div>
         <div className="relative flex-shrink-0">
           <button onClick={() => { setUser(!user); setNotif(false); }} className="w-10 h-10 flex items-center justify-center">
-            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white text-xs font-bold">AJ</div>
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white text-xs font-bold">TR</div>
           </button>
           {user && <UserPanel dark={dark} setDark={setDark} onLogout={onLogout} onClose={() => setUser(false)} />}
         </div>
@@ -268,8 +268,8 @@ function TopBar({
         </div>
         <div className="relative ml-1">
           <button onClick={() => { setUser(!user); setNotif(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">
-            <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white text-xs font-bold">AJ</div>
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 hidden xl:block">Alex Johnson</span>
+            <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white text-xs font-bold">TR</div>
+            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 hidden xl:block">Taban Riak</span>
             <ChevronDown size={13} className="text-slate-400 dark:text-slate-500 hidden xl:block" />
           </button>
           {user && <UserPanel dark={dark} setDark={setDark} onLogout={onLogout} onClose={() => setUser(false)} />}
@@ -456,10 +456,10 @@ function MoreDrawer({ active, setActive, onClose, onLogout, dark, setDark, navBa
           <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full" />
         </div>
         <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0">AJ</div>
+          <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0">TR</div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Alex Johnson</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">Parkview Residences · Admin</p>
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Taban Riak</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">Kasalita Inn · Admin</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
             <X size={16} />
@@ -630,7 +630,7 @@ function AuthPage({ onLogin }: { onLogin: () => void }) {
         <div className="relative space-y-8">
           <div><h2 className="text-4xl font-bold text-white leading-tight">Property management made effortless.</h2><p className="text-emerald-100/80 mt-3 text-base leading-relaxed">The modern platform for landlords who want full control.</p></div>
           <div className="space-y-3">{["Manage all units from one dashboard","Automate rent collection","Track maintenance in real-time","Generate reports instantly"].map(item=><div key={item} className="flex items-center gap-3"><div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0"><Check size={11} className="text-white"/></div><span className="text-sm text-white/80">{item}</span></div>)}</div>
-          <div className="bg-white/10 rounded-2xl p-5 border border-white/20"><div className="flex items-start gap-3 mb-3"><div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">MR</div><div><p className="text-white text-sm font-semibold">Michael Reed</p><p className="text-white/60 text-xs">Reed &amp; Co Properties</p></div></div><p className="text-white/80 text-sm leading-relaxed">"APT Manager transformed how we handle our 120-unit portfolio."</p></div>
+          <div className="bg-white/10 rounded-2xl p-5 border border-white/20"><div className="flex items-start gap-3 mb-3"><div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">TR</div><div><p className="text-white text-sm font-semibold">Taban Riak</p><p className="text-white/60 text-xs">Kasalita Inn</p></div></div><p className="text-white/80 text-sm leading-relaxed">"APT Manager transformed how we handle our 120-unit portfolio."</p></div>
         </div>
         <div className="relative flex items-center gap-8">{[["120+","Properties"],["4,800+","Units"],["99.9%","Uptime"]].map(([v,l])=><div key={l}><p className="text-2xl font-bold text-white">{v}</p><p className="text-xs text-white/60 mt-0.5">{l}</p></div>)}</div>
       </div>
@@ -644,8 +644,8 @@ function AuthPage({ onLogin }: { onLogin: () => void }) {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 mb-7">{mode==="login"?"Sign in to your dashboard":"Start your 14-day free trial"}</p>
           <div className="space-y-3">
             {mode==="register"&&<>
-              <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Alex Johnson" className={field}/></div>
-              <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Company Name</label><input value={co} onChange={e=>setCo(e.target.value)} placeholder="Parkview Properties" className={field}/></div>
+              <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Taban Riak" className={field}/></div>
+              <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Company Name</label><input value={co} onChange={e=>setCo(e.target.value)} placeholder="Kasalita Inn" className={field}/></div>
             </>}
             <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email address</label><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" type="email" className={field}/></div>
             <div>
