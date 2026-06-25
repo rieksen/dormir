@@ -332,7 +332,7 @@ function UserPanel({ dark, setDark, onLogout, onClose }: {
       <div className="fixed inset-0 z-[90]" onClick={onClose} />
       <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden z-[100] py-1">
         <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Alex Johnson</p>
+          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Taban Riak</p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Administrator</p>
         </div>
         <button onClick={() => setDark(!dark)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
@@ -391,9 +391,9 @@ function Sidebar({ active, setActive, collapsed, navBadges, unitCount }: {
               <div className="w-5 h-5 bg-emerald-600 rounded-md flex items-center justify-center">
                 <Star size={11} className="text-white" />
               </div>
-              <span className="text-xs font-bold text-emerald-700">Pro Plan</span>
+              <span className="text-xs font-bold text-emerald-700">Plan</span>
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Parkview Residences</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Kasalita Inn</p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{unitCount ?? "—"} units · San Francisco</p>
           </div>
         </div>

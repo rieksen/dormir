@@ -298,8 +298,8 @@ export default function DashboardPage({ onNavigate, summary, loading, error, onR
     <div className="space-y-5">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-5 text-white">
         <p className="text-xs font-semibold text-emerald-200 uppercase tracking-widest mb-1">{greeting()}</p>
-        <h1 className="text-2xl font-bold">Alex Johnson</h1>
-        <p className="text-sm text-emerald-100 mt-1">Parkview Residences · {totalUnits} units</p>
+        <h1 className="text-2xl font-bold">Taban Riak</h1>
+        <p className="text-sm text-emerald-100 mt-1">Kasalita Inn · {totalUnits} units</p>
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/20">
           {[
             [formatCurrency(collected), "Collected"],
