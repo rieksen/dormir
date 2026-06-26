@@ -1,0 +1,12 @@
+# Cloudflare Pages reference configuration.
+# Most settings are configured in the Cloudflare dashboard.
+# Build command: npm run build
+# Output directory: dist
+# Root directory: frontend
+
+name = "dormir-frontend"
+compatibility_date = "2024-01-01"
+
+[vars]
+# Override in Cloudflare Pages dashboard → Environment variables
+# VITE_API_URL = "https://api.yourdomain.com"

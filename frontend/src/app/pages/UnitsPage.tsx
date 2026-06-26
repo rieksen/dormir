@@ -16,6 +16,8 @@ import {
   Search, Plus, Download, Eye, Edit, Trash2, X, Check, Loader2, AlertCircle,
 } from "lucide-react";
 
+import { apiFetch } from "../lib/api";
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface Unit {
@@ -46,24 +48,6 @@ const EMPTY_FORM: UnitFormData = {
   rent: "",
   status: "Vacant",
 };
-
-// ── API helpers ───────────────────────────────────────────────────────────────
-
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Request failed: ${res.status}`);
-  }
-  // 204 No Content
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
 
 // ── Primitive UI (mirrors App.tsx helpers so no import needed) ────────────────
 
