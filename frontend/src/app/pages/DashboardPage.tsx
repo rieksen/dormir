@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import {
   Building2, Home, Key, DollarSign, TrendingUp, Loader2, AlertCircle,
-  FileText, Wrench, UserCircle, AlertTriangle,
+  FileText, Users, Bed, Calendar,
 } from "lucide-react";
-import type { DashboardSummary } from "../lib/dashboardApi";
+import type { DashboardSummary } from "../lib/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -16,10 +16,10 @@ interface ActivityItem {
   title: string;
   detail: string;
   time: string;
-  page?: "payments" | "leases" | "maintenance" | "tenants";
+  page?: "payments" | "bookings" | "allocations" | "students";
 }
 
-type NavigatePage = "payments" | "leases" | "maintenance" | "tenants";
+type NavigatePage = "payments" | "bookings" | "allocations" | "students";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -52,115 +52,17 @@ function greeting(): string {
   return "Good evening";
 }
 
-function buildRevenueByMonth(payments: DashboardSummary["payments"]["items"]) {
-  const totals = new Map<string, number>();
-  for (const p of payments) {
-    if (p.status !== "Paid" || !p.paid) continue;
-    const d = parseAppDate(p.paid);
-    if (!d) continue;
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    totals.set(key, (totals.get(key) ?? 0) + p.amount);
-  }
-
-  const entries = [...totals.entries()]
-    .map(([key, v]) => {
-      const [y, m] = key.split("-").map(Number);
-      return { year: y, month: m, v, label: `${MONTHS[m]} ${y}` };
-    })
-    .sort((a, b) => a.year - b.year || a.month - b.month);
-
-  if (entries.length === 0) {
-    return MONTHS.map(m => ({ month: m, v: 0 }));
-  }
-
-  return entries.slice(-12).map(e => ({ month: e.label, v: e.v }));
+// Placeholder for revenue chart - would need historical payment data
+function buildRevenueByMonth() {
+  // For now, return empty months - could be enhanced with actual payment history
+  return MONTHS.map(m => ({ month: m, v: 0 }));
 }
 
-function buildActivityFeed(summary: DashboardSummary, unitMap: Map<number, string>): ActivityItem[] {
-  const items: ActivityItem[] = [];
-
-  for (const p of summary.payments.items) {
-    if (p.status === "Paid" && p.paid) {
-      const d = parseAppDate(p.paid);
-      if (!d) continue;
-      items.push({
-        id: `pay-${p.id}`,
-        sortDate: d.getTime(),
-        Icon: DollarSign,
-        bg: "bg-emerald-100",
-        ic: "text-emerald-600",
-        title: "Rent payment received",
-        detail: `Unit ${p.unit} · ${p.tenant} · ${formatCurrency(p.amount)}`,
-        time: relativeTime(d),
-        page: "payments",
-      });
-    } else if (p.status === "Overdue") {
-      const d = parseAppDate(p.due) ?? new Date(0);
-      items.push({
-        id: `overdue-${p.id}`,
-        sortDate: d.getTime(),
-        Icon: AlertTriangle,
-        bg: "bg-amber-100",
-        ic: "text-amber-600",
-        title: "Payment overdue",
-        detail: `Unit ${p.unit} · ${p.tenant} · ${formatCurrency(p.amount)}`,
-        time: relativeTime(d),
-        page: "payments",
-      });
-    }
-  }
-
-  for (const m of summary.maintenance.items) {
-    if (m.status === "Resolved") continue;
-    const d = parseAppDate(m.submitted_date);
-    if (!d) continue;
-    const unit = unitMap.get(m.unit_id) ?? `#${m.unit_id}`;
-    items.push({
-      id: `maint-${m.id}`,
-      sortDate: d.getTime(),
-      Icon: Wrench,
-      bg: m.priority === "Emergency" || m.priority === "High" ? "bg-red-100" : "bg-blue-100",
-      ic: m.priority === "Emergency" || m.priority === "High" ? "text-red-600" : "text-blue-600",
-      title: "Maintenance request opened",
-      detail: `Unit ${unit} · ${m.category} · ${m.priority}`,
-      time: relativeTime(d),
-      page: "maintenance",
-    });
-  }
-
-  for (const l of summary.leases.items) {
-    if (l.status !== "Expiring Soon") continue;
-    const d = parseAppDate(l.end) ?? new Date(0);
-    items.push({
-      id: `lease-${l.id}`,
-      sortDate: d.getTime(),
-      Icon: FileText,
-      bg: "bg-violet-100",
-      ic: "text-violet-600",
-      title: "Lease expiring soon",
-      detail: `Unit ${l.unit} · ${l.tenant}`,
-      time: relativeTime(d),
-      page: "leases",
-    });
-  }
-
-  for (const t of summary.tenants) {
-    const d = parseAppDate(t.move_in);
-    if (!d) continue;
-    items.push({
-      id: `tenant-${t.id}`,
-      sortDate: d.getTime(),
-      Icon: UserCircle,
-      bg: "bg-violet-100",
-      ic: "text-violet-600",
-      title: "Tenant onboarded",
-      detail: `${t.name} · Unit ${t.unit}`,
-      time: relativeTime(d),
-      page: "tenants",
-    });
-  }
-
-  return items.sort((a, b) => b.sortDate - a.sortDate).slice(0, 8);
+// Activity feed would be built from recent-payments and recent-bookings endpoints
+// This is handled separately now via additional API calls
+function buildActivityFeed(): ActivityItem[] {
+  // This will be populated from props (recent payments and bookings)
+  return [];
 }
 
 // ── Charts ────────────────────────────────────────────────────────────────────
@@ -198,30 +100,69 @@ export interface DashboardPageProps {
   loading?: boolean;
   error?: string | null;
   onReload?: () => void;
+  recentPayments?: Array<{ student_name: string; amount_paid: number; paid_on: string; method: string }>;
+  recentBookings?: Array<{ student_name: string; room_number: string; status: string; paid_on: string }>;
 }
 
-export default function DashboardPage({ onNavigate, summary, loading, error, onReload }: DashboardPageProps) {
-  const unitMap = useMemo(
-    () => new Map((summary?.units.items ?? []).map(u => [u.id, u.number])),
-    [summary],
-  );
+export default function DashboardPage({ 
+  onNavigate, 
+  summary, 
+  loading, 
+  error, 
+  onReload,
+  recentPayments = [],
+  recentBookings = [],
+}: DashboardPageProps) {
+  const totalRooms = summary?.total_rooms ?? 0;
+  const totalBeds = summary?.total_beds ?? 0;
+  const occupiedBeds = summary?.occupied_beds ?? 0;
+  const availableBeds = summary?.available_beds ?? 0;
+  const occupancyPct = summary?.occupancy_rate ?? 0;
+  const totalStudents = summary?.total_students ?? 0;
+  const collected = summary?.total_collected ?? 0;
+  const pendingBookings = summary?.pending_bookings ?? 0;
+  const inMaintenance = summary?.rooms_under_maintenance ?? 0;
 
-  const totalUnits = summary?.units.total ?? 0;
-  const occupied = summary?.units.occupied ?? 0;
-  const vacant = summary?.units.vacant ?? 0;
-  const inMaintenance = summary?.units.maintenance ?? 0;
-  const occupancyPct = totalUnits > 0 ? Math.round((occupied / totalUnits) * 100) : 0;
-  const alertCount = summary?.alert_count ?? 0;
-  const collected = summary?.payments.collected ?? 0;
-
-  const revenueData = useMemo(
-    () => buildRevenueByMonth(summary?.payments.items ?? []),
-    [summary],
-  );
-  const activityFeed = useMemo(
-    () => (summary ? buildActivityFeed(summary, unitMap) : []),
-    [summary, unitMap],
-  );
+  const revenueData = useMemo(() => buildRevenueByMonth(), []);
+  
+  // Build activity feed from recent payments and bookings
+  const activityFeed = useMemo(() => {
+    const items: ActivityItem[] = [];
+    
+    for (const p of recentPayments.slice(0, 5)) {
+      const d = parseAppDate(p.paid_on);
+      if (!d) continue;
+      items.push({
+        id: `pay-${p.student_name}-${p.paid_on}`,
+        sortDate: d.getTime(),
+        Icon: DollarSign,
+        bg: "bg-emerald-100",
+        ic: "text-emerald-600",
+        title: "Payment received",
+        detail: `${p.student_name} · ${formatCurrency(p.amount_paid)} via ${p.method}`,
+        time: relativeTime(d),
+        page: "payments",
+      });
+    }
+    
+    for (const b of recentBookings.slice(0, 5)) {
+      const d = parseAppDate(b.paid_on);
+      if (!d) continue;
+      items.push({
+        id: `booking-${b.student_name}-${b.paid_on}`,
+        sortDate: d.getTime(),
+        Icon: Calendar,
+        bg: b.status === "confirmed" ? "bg-emerald-100" : "bg-blue-100",
+        ic: b.status === "confirmed" ? "text-emerald-600" : "text-blue-600",
+        title: `Booking ${b.status}`,
+        detail: `${b.student_name} · Room ${b.room_number}`,
+        time: relativeTime(d),
+        page: "bookings",
+      });
+    }
+    
+    return items.sort((a, b) => b.sortDate - a.sortDate).slice(0, 8);
+  }, [recentPayments, recentBookings]);
 
   if (loading) {
     return (
@@ -253,25 +194,25 @@ export default function DashboardPage({ onNavigate, summary, loading, error, onR
 
   const statCards = [
     {
-      title: "Total Units",
-      value: String(totalUnits),
-      sub: `${occupancyPct}% occupied`,
-      Icon: Building2,
+      title: "Total Beds",
+      value: String(totalBeds),
+      sub: `${occupancyPct.toFixed(1)}% occupied`,
+      Icon: Bed,
       ibg: "bg-slate-100 dark:bg-slate-800",
       ic: "text-slate-600 dark:text-slate-400",
     },
     {
       title: "Occupied",
-      value: String(occupied),
-      sub: `of ${totalUnits} units`,
+      value: String(occupiedBeds),
+      sub: `of ${totalBeds} beds`,
       Icon: Home,
       ibg: "bg-emerald-100",
       ic: "text-emerald-600",
     },
     {
-      title: "Vacant",
-      value: String(vacant),
-      sub: inMaintenance > 0 ? `${inMaintenance} in maintenance` : "available now",
+      title: "Available",
+      value: String(availableBeds),
+      sub: inMaintenance > 0 ? `${inMaintenance} rooms maintenance` : "ready to book",
       Icon: Key,
       ibg: "bg-amber-100",
       ic: "text-amber-600",
@@ -279,7 +220,7 @@ export default function DashboardPage({ onNavigate, summary, loading, error, onR
     {
       title: "Revenue",
       value: formatCurrency(collected),
-      sub: summary.payments.pending ? `${formatCurrency(summary.payments.pending)} pending` : "collected",
+      sub: summary ? `${formatCurrency(summary.outstanding_balance)} outstanding` : "collected",
       Icon: DollarSign,
       ibg: "bg-blue-100",
       ic: "text-blue-600",
@@ -287,9 +228,8 @@ export default function DashboardPage({ onNavigate, summary, loading, error, onR
   ];
 
   const occupancyRows = [
-    { label: "Occupied", value: occupied, color: "bg-emerald-500" },
-    { label: "Vacant", value: vacant, color: "bg-amber-400" },
-    ...(inMaintenance > 0 ? [{ label: "Maintenance", value: inMaintenance, color: "bg-red-400" }] : []),
+    { label: "Occupied Beds", value: occupiedBeds, color: "bg-emerald-500" },
+    { label: "Available Beds", value: availableBeds, color: "bg-amber-400" },
   ];
 
   const chartYear = new Date().getFullYear();
@@ -298,18 +238,18 @@ export default function DashboardPage({ onNavigate, summary, loading, error, onR
     <div className="space-y-5">
       <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-5 text-white">
         <p className="text-xs font-semibold text-emerald-200 uppercase tracking-widest mb-1">{greeting()}</p>
-        <h1 className="text-2xl font-bold">Taban Riak</h1>
-        <p className="text-sm text-emerald-100 mt-1">Kasalita Inn · {totalUnits} units</p>
+        <h1 className="text-2xl font-bold">Dormir Dashboard</h1>
+        <p className="text-sm text-emerald-100 mt-1">{summary?.active_period_name ?? "No active period"} · {totalRooms} rooms · {totalBeds} beds</p>
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/20">
           {[
             [formatCurrency(collected), "Collected"],
-            [`${occupancyPct}%`, "Occupancy"],
-            [String(alertCount), "Alerts"],
+            [`${occupancyPct.toFixed(1)}%`, "Occupancy"],
+            [String(pendingBookings), "Pending Bookings"],
           ].map(([v, l], i) => (
             <div key={l} className="flex items-center gap-4">
               {i > 0 && <div className="w-px h-8 bg-white/20" />}
               <div>
-                <p className={`text-xl font-bold ${i === 2 && alertCount > 0 ? "text-amber-300" : ""}`}>{v}</p>
+                <p className={`text-xl font-bold ${i === 2 && pendingBookings > 0 ? "text-amber-300" : ""}`}>{v}</p>
                 <p className="text-xs text-emerald-200">{l}</p>
               </div>
             </div>
@@ -356,13 +296,13 @@ export default function DashboardPage({ onNavigate, summary, loading, error, onR
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{row.label}</span>
                 <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
                   {row.value}
-                  <span className="text-slate-400 dark:text-slate-500 font-normal text-xs"> / {totalUnits}</span>
+                  <span className="text-slate-400 dark:text-slate-500 font-normal text-xs"> / {totalBeds}</span>
                 </span>
               </div>
               <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${row.color} rounded-full transition-all`}
-                  style={{ width: totalUnits > 0 ? `${(row.value / totalUnits) * 100}%` : "0%" }}
+                  style={{ width: totalBeds > 0 ? `${(row.value / totalBeds) * 100}%` : "0%" }}
                 />
               </div>
             </div>
