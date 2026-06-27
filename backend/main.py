@@ -7,17 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import create_db_and_tables
-from routers import (
-    allocations,
-    booking,
-    campuses,
-    dashboard,
-    fees,
-    payments,
-    periods,
-    rooms,
-    students,
-)
+from routers import beds, payments, reports, rooms, semester, students
 
 load_dotenv()
 
@@ -36,8 +26,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Dormir API",
-    version="1.0.0",
+    title="Dormir Hostel API",
+    version="2.0.0",
     lifespan=lifespan,
     debug=DEBUG,
 )
@@ -50,22 +40,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(campuses.router, prefix="/campuses", tags=["campuses"])
-app.include_router(rooms.router, prefix="/rooms", tags=["rooms"])
 app.include_router(students.router, prefix="/students", tags=["students"])
-app.include_router(booking.router, prefix="/bookings", tags=["bookings"])
-app.include_router(allocations.router, prefix="/allocations", tags=["allocations"])
-app.include_router(fees.router, prefix="/fees", tags=["fees"])
+app.include_router(beds.router, prefix="/beds", tags=["beds"])
 app.include_router(payments.router, prefix="/payments", tags=["payments"])
-app.include_router(periods.router, prefix="/periods", tags=["periods"])
-app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+app.include_router(rooms.router, prefix="/rooms", tags=["rooms"])
+app.include_router(semester.router, prefix="/semester", tags=["semester"])
+app.include_router(reports.router, prefix="/reports", tags=["reports"])
 
 
 @app.get("/")
 async def root():
     return {
-        "name": "Dormir API",
-        "version": "1.0.0",
+        "name": "Dormir Hostel API",
+        "version": "2.0.0",
         "status": "running",
     }
 

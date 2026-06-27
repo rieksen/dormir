@@ -1,56 +1,90 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
+
 from database import get_session
-from models_payment import Payment, PaymentCreate, PaymentRead, PaymentUpdate
-from models_fee import Fee
+from models_booking import Booking
+from models_payment import Payment, PaymentStatus
+from models_room import Bed, Room
+from models_student import Semester, Student
 
 router = APIRouter()
 
-@router.get("/", response_model=list[PaymentRead])
-def list_payments(session: Session = Depends(get_session)):
-    return session.exec(select(Payment)).all()
 
-@router.get("/{payment_id}", response_model=PaymentRead)
-def get_payment(payment_id: int, session: Session = Depends(get_session)):
+class PaymentOut(BaseModel):
+    id: int
+    booking_id: int
+    student_id: int
+    student_name: str
+    room_number: str
+    bed_number: int
+    semester: Semester
+    year: int
+    amount: int
+    status: PaymentStatus
+    confirmed_at: datetime | None
+
+
+@router.get('/pending', response_model=list[PaymentOut])
+def pending_payments(session: Session = Depends(get_session)):
+    rows = session.exec(
+        select(Payment, Booking, Student, Bed, Room)
+        .join(Booking, Payment.booking_id == Booking.id)
+        .join(Student, Booking.student_id == Student.id)
+        .join(Bed, Booking.bed_id == Bed.id)
+        .join(Room, Bed.room_id == Room.id)
+        .where(Payment.status == PaymentStatus.pending)
+        .order_by(Student.full_name)
+    ).all()
+    return [
+        PaymentOut(
+            id=payment.id,
+            booking_id=booking.id,
+            student_id=student.id,
+            student_name=student.full_name,
+            room_number=room.room_number,
+            bed_number=bed.bed_number,
+            semester=booking.semester,
+            year=booking.year,
+            amount=payment.amount,
+            status=payment.status,
+            confirmed_at=payment.confirmed_at,
+        )
+        for payment, booking, student, bed, room in rows
+    ]
+
+
+@router.post('/{payment_id}/confirm', response_model=PaymentOut)
+def confirm_payment(payment_id: int, session: Session = Depends(get_session)):
     payment = session.get(Payment, payment_id)
     if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-    return payment
+        raise HTTPException(status_code=404, detail='Payment not found')
+    booking = session.get(Booking, payment.booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail='Booking not found')
+    student = session.get(Student, booking.student_id)
+    bed = session.get(Bed, booking.bed_id)
+    room = session.get(Room, bed.room_id) if bed else None
+    if not student or not bed or not room:
+        raise HTTPException(status_code=404, detail='Payment relationship not found')
 
-@router.post("/", response_model=PaymentRead, status_code=201)
-def create_payment(data: PaymentCreate, session: Session = Depends(get_session)):
-    fee = session.get(Fee, data.fee_id)
-    if not fee:
-        raise HTTPException(status_code=404, detail="Fee not found")
-
-    # guard against overpayment
-    existing_payments = session.exec(select(Payment).where(Payment.fee_id == data.fee_id)).all()
-    total_paid = sum(p.amount_paid for p in existing_payments)
-    if total_paid + data.amount_paid > fee.amount_due:
-        raise HTTPException(status_code=400, detail=f"Overpayment — balance remaining is {fee.amount_due - total_paid} UGX")
-
-    payment = Payment.model_validate(data)
+    payment.status = PaymentStatus.confirmed
+    payment.confirmed_at = datetime.now(timezone.utc)
     session.add(payment)
     session.commit()
     session.refresh(payment)
-    return payment
-
-@router.patch("/{payment_id}", response_model=PaymentRead)
-def update_payment(payment_id: int, data: PaymentUpdate, session: Session = Depends(get_session)):
-    payment = session.get(Payment, payment_id)
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(payment, field, value)
-    session.add(payment)
-    session.commit()
-    session.refresh(payment)
-    return payment
-
-@router.delete("/{payment_id}", status_code=204)
-def delete_payment(payment_id: int, session: Session = Depends(get_session)):
-    payment = session.get(Payment, payment_id)
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-    session.delete(payment)
-    session.commit()
+    return PaymentOut(
+        id=payment.id,
+        booking_id=booking.id,
+        student_id=student.id,
+        student_name=student.full_name,
+        room_number=room.room_number,
+        bed_number=bed.bed_number,
+        semester=booking.semester,
+        year=booking.year,
+        amount=payment.amount,
+        status=payment.status,
+        confirmed_at=payment.confirmed_at,
+    )

@@ -1,69 +1,66 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
+
 from database import get_session
-from models_room import Room, RoomCreate, RoomRead, RoomUpdate, Bed, BedCreate, BedRead
+from models_booking import Booking, BookingStatus
+from models_room import Bed, Room, RoomGender
+from services_hostel import HOSTEL_ROOM_NUMBERS
 
 router = APIRouter()
 
-# --- Rooms ---
 
-@router.get("/", response_model=list[RoomRead])
+class RoomPriceUpdate(BaseModel):
+    price_per_bed: int
+
+
+class RoomBedOut(BaseModel):
+    bed_id: int
+    bed_number: int
+    is_occupied: bool
+
+
+class RoomOut(BaseModel):
+    id: int
+    room_number: str
+    gender: RoomGender
+    price_per_bed: int
+    occupied_beds: int
+    available_beds: int
+    beds: list[RoomBedOut]
+
+
+def room_payload(session: Session, room: Room) -> RoomOut:
+    beds = session.exec(select(Bed).where(Bed.room_id == room.id).order_by(Bed.bed_number)).all()
+    occupied = sum(1 for bed in beds if bed.is_occupied)
+    return RoomOut(
+        id=room.id,
+        room_number=room.room_number,
+        gender=room.gender,
+        price_per_bed=room.price_per_bed,
+        occupied_beds=occupied,
+        available_beds=len(beds) - occupied,
+        beds=[RoomBedOut(bed_id=bed.id, bed_number=bed.bed_number, is_occupied=bed.is_occupied) for bed in beds],
+    )
+
+
+@router.get('', response_model=list[RoomOut])
 def list_rooms(session: Session = Depends(get_session)):
-    return session.exec(select(Room)).all()
+    rooms = session.exec(select(Room).where(Room.room_number.in_(HOSTEL_ROOM_NUMBERS)).order_by(Room.room_number)).all()
+    return [room_payload(session, room) for room in rooms]
 
-@router.get("/{room_id}", response_model=RoomRead)
-def get_room(room_id: int, session: Session = Depends(get_session)):
+
+@router.put('/{room_id}/price', response_model=RoomOut)
+def update_room_price(room_id: int, data: RoomPriceUpdate, session: Session = Depends(get_session)):
+    if data.price_per_bed < 0:
+        raise HTTPException(status_code=400, detail='Price per bed cannot be negative')
     room = session.get(Room, room_id)
     if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
-    return room
-
-@router.post("/", response_model=RoomRead, status_code=201)
-def create_room(data: RoomCreate, session: Session = Depends(get_session)):
-    room = Room.model_validate(data)
+        raise HTTPException(status_code=404, detail='Room not found')
+    if room.room_number not in HOSTEL_ROOM_NUMBERS:
+        raise HTTPException(status_code=404, detail='Room not found')
+    room.price_per_bed = data.price_per_bed
     session.add(room)
     session.commit()
     session.refresh(room)
-    # auto-create beds based on room type
-    labels = ["A", "B"] if room.room_type == "double" else ["A"]
-    for label in labels:
-        session.add(Bed(room_id=room.id, label=label))
-    session.commit()
-    return room
-
-@router.patch("/{room_id}", response_model=RoomRead)
-def update_room(room_id: int, data: RoomUpdate, session: Session = Depends(get_session)):
-    room = session.get(Room, room_id)
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(room, field, value)
-    session.add(room)
-    session.commit()
-    session.refresh(room)
-    return room
-
-@router.delete("/{room_id}", status_code=204)
-def delete_room(room_id: int, session: Session = Depends(get_session)):
-    room = session.get(Room, room_id)
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
-    session.delete(room)
-    session.commit()
-
-# --- Beds ---
-
-@router.get("/{room_id}/beds", response_model=list[BedRead])
-def list_beds(room_id: int, session: Session = Depends(get_session)):
-    return session.exec(select(Bed).where(Bed.room_id == room_id)).all()
-
-@router.post("/{room_id}/beds", response_model=BedRead, status_code=201)
-def create_bed(room_id: int, data: BedCreate, session: Session = Depends(get_session)):
-    room = session.get(Room, room_id)
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
-    bed = Bed.model_validate(data)
-    session.add(bed)
-    session.commit()
-    session.refresh(bed)
-    return bed
+    return room_payload(session, room)
