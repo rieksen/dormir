@@ -1,4 +1,4 @@
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+import { apiFetch } from "./api";
 
 export type AlertPage = "payments" | "leases" | "maintenance" | "tenants";
 
@@ -73,14 +73,7 @@ export interface DashboardSummary {
 }
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
-  const res = await fetch(`${API}/dashboard/summary`, {
-    headers: { "Content-Type": "application/json" },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Request failed: ${res.status}`);
-  }
-  return res.json();
+  return apiFetch<DashboardSummary>("/dashboard/summary");
 }
 
 export function alertDotClass(alert: DashboardAlert): string {

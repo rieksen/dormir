@@ -13,6 +13,8 @@ import {
   Loader2, AlertCircle, Mail, Phone, FileText,
 } from "lucide-react";
 
+import { apiFetch } from "../lib/api";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Tenant {
@@ -37,23 +39,6 @@ interface TenantFormData {
 const EMPTY_FORM: TenantFormData = {
   name: "", email: "", phone: "", unit: "", lease_status: "Active", move_in: "",
 };
-
-// ── API ───────────────────────────────────────────────────────────────────────
-
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Request failed: ${res.status}`);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
