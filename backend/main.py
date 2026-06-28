@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import create_db_and_tables
-from routers import beds, payments, reports, rooms, semester, students
+from routers import beds, dashboard, maintenance, payments, reports, rooms, semester, students
 
 load_dotenv()
 
@@ -40,12 +40,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(students.router, prefix="/students", tags=["students"])
 app.include_router(beds.router, prefix="/beds", tags=["beds"])
 app.include_router(payments.router, prefix="/payments", tags=["payments"])
 app.include_router(rooms.router, prefix="/rooms", tags=["rooms"])
 app.include_router(semester.router, prefix="/semester", tags=["semester"])
 app.include_router(reports.router, prefix="/reports", tags=["reports"])
+app.include_router(maintenance.router, prefix="/maintenance", tags=["maintenance"])
 
 
 @app.get("/")

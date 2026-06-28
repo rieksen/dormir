@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 
 from database import get_session
 from models_booking import Booking
-from models_payment import Payment, PaymentStatus
+from models_payment import Payment, PaymentStatus, PaymentType
 from models_room import Bed, Room
 from models_student import Semester, Student
 
@@ -24,6 +24,7 @@ class PaymentOut(BaseModel):
     year: int
     amount: int
     status: PaymentStatus
+    payment_type: PaymentType | None
     confirmed_at: datetime | None
 
 
@@ -50,6 +51,7 @@ def pending_payments(session: Session = Depends(get_session)):
             year=booking.year,
             amount=payment.amount,
             status=payment.status,
+            payment_type=payment.payment_type,
             confirmed_at=payment.confirmed_at,
         )
         for payment, booking, student, bed, room in rows
@@ -57,7 +59,11 @@ def pending_payments(session: Session = Depends(get_session)):
 
 
 @router.post('/{payment_id}/confirm', response_model=PaymentOut)
-def confirm_payment(payment_id: int, session: Session = Depends(get_session)):
+def confirm_payment(
+    payment_id: int,
+    payment_type: PaymentType,
+    session: Session = Depends(get_session)
+):
     payment = session.get(Payment, payment_id)
     if not payment:
         raise HTTPException(status_code=404, detail='Payment not found')
@@ -71,6 +77,7 @@ def confirm_payment(payment_id: int, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail='Payment relationship not found')
 
     payment.status = PaymentStatus.confirmed
+    payment.payment_type = payment_type
     payment.confirmed_at = datetime.now(timezone.utc)
     session.add(payment)
     session.commit()
@@ -86,5 +93,6 @@ def confirm_payment(payment_id: int, session: Session = Depends(get_session)):
         year=booking.year,
         amount=payment.amount,
         status=payment.status,
+        payment_type=payment.payment_type,
         confirmed_at=payment.confirmed_at,
     )
