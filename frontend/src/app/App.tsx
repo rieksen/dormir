@@ -27,7 +27,12 @@ import {
   fetchRecentPayments,
   fetchRecentBookings,
 } from "./lib/api/dashboard";
-import type { DashboardSummary, RecentPayment, RecentBooking } from "./lib/types";
+import type { DashboardSummary, RecentPayment, RecentBooking, ActiveStudent } from "./lib/types";
+import { Toaster } from "./components/ui/sonner";
+import { toast } from "sonner";
+import { apiFetch } from "./lib/api";
+import { Loader2 } from "lucide-react";
+// Note: dashboardApi.ts alias removed — use lib/api/dashboard directly
 
 
 // ─── Types ───────────────────────────────────────────────────
@@ -106,7 +111,7 @@ function PrimaryBtn({ children, icon, onClick, sm }: {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl active:scale-95 transition-all ${sm ? "px-3 py-2 text-xs" : "px-4 py-2.5 text-sm"}`}
+      className={`inline-flex items-center gap-1.5 bg-primary hover:bg-primary/95 text-white font-semibold rounded-lg shadow-sm active:scale-[0.98] transition-all ${sm ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"}`}
     >
       {icon}{children}
     </button>
@@ -119,7 +124,7 @@ function GhostBtn({ children, icon, onClick }: {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all"
+      className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-750 dark:text-slate-350 font-semibold rounded-lg px-3 py-1.5 text-xs shadow-sm hover:bg-slate-50 dark:hover:bg-slate-850 active:scale-[0.98] transition-all"
     >
       {icon}{children}
     </button>
@@ -207,13 +212,13 @@ function TopBar({
       {/* Mobile */}
       <div className="lg:hidden h-14 flex items-center px-4 gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="w-7 h-7 bg-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
             <Building2 size={13} className="text-white" />
           </div>
           <span className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{label}</span>
         </div>
         <div className="relative flex-shrink-0">
-          <button onClick={() => { setNotif(!notif); setUser(false); }} className="relative w-10 h-10 flex items-center justify-center rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <button onClick={() => { setNotif(!notif); setUser(false); }} className="relative w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
             <Bell size={19} />
             {pendingBookings > 0 && (
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
@@ -222,7 +227,7 @@ function TopBar({
         </div>
         <div className="relative flex-shrink-0">
           <button onClick={() => { setUser(!user); setNotif(false); }} className="w-10 h-10 flex items-center justify-center">
-            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white text-xs font-bold">DR</div>
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">DR</div>
           </button>
           {user && <UserPanel dark={dark} setDark={setDark} onLogout={onLogout} onClose={() => setUser(false)} />}
         </div>
@@ -236,7 +241,7 @@ function TopBar({
           </button>
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center">
+              <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
                 <Building2 size={13} className="text-white" />
               </div>
               <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">Dormir</span>
@@ -246,7 +251,7 @@ function TopBar({
         <div className="flex-1 max-w-sm">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-            <input placeholder="Search rooms, students…" className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+            <input placeholder="Search rooms, students…" className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
           </div>
         </div>
         <div className="flex-1" />
@@ -262,9 +267,9 @@ function TopBar({
           </button>
         </div>
         <div className="relative ml-1">
-          <button onClick={() => { setUser(!user); setNotif(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">
-            <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white text-xs font-bold">DR</div>
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 hidden xl:block">Dormir</span>
+          <button onClick={() => { setUser(!user); setNotif(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+            <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">DR</div>
+            <span className="text-xs font-semibold text-slate-850 dark:text-slate-200 hidden xl:block">Dormir</span>
             <ChevronDown size={13} className="text-slate-400 dark:text-slate-500 hidden xl:block" />
           </button>
           {user && <UserPanel dark={dark} setDark={setDark} onLogout={onLogout} onClose={() => setUser(false)} />}
@@ -320,9 +325,9 @@ function Sidebar({ active, setActive, collapsed, totalRooms }: {
               key={item.id}
               onClick={() => setActive(item.id)}
               title={collapsed ? item.label : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors min-h-[44px] ${on ? "bg-emerald-50 dark:bg-emerald-900/25 text-emerald-700" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 dark:text-slate-100"}`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[40px] ${on ? "bg-accent dark:bg-accent/10 text-primary font-semibold" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"}`}
             >
-              <item.Icon size={17} className={`flex-shrink-0 ${on ? "text-emerald-600" : "text-slate-400 dark:text-slate-500"}`} />
+              <item.Icon size={17} className={`flex-shrink-0 ${on ? "text-primary" : "text-slate-400 dark:text-slate-500"}`} />
               {!collapsed && (
                 <span className="flex-1 text-left">{item.label}</span>
               )}
@@ -332,12 +337,12 @@ function Sidebar({ active, setActive, collapsed, totalRooms }: {
       </nav>
       {!collapsed && (
         <div className="px-3 py-4 border-t border-slate-100 dark:border-slate-800">
-          <div className="bg-emerald-50 dark:bg-emerald-900/25 rounded-xl p-3.5 border border-emerald-100">
+          <div className="bg-accent/40 dark:bg-accent/5 rounded-lg p-3.5 border border-primary/10">
             <div className="flex items-center gap-2 mb-1.5">
-              <div className="w-5 h-5 bg-emerald-600 rounded-md flex items-center justify-center">
+              <div className="w-5 h-5 bg-primary rounded-md flex items-center justify-center">
                 <Star size={11} className="text-white" />
               </div>
-              <span className="text-xs font-bold text-emerald-700">Plan</span>
+              <span className="text-xs font-bold text-primary">Plan</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Dormir Management</p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{totalRooms ?? "—"} rooms managed</p>
@@ -361,20 +366,20 @@ function BottomNav({ active, setActive, onMore }: {
           const on = active === item.id;
           return (
             <button key={item.id} onClick={() => setActive(item.id)} className="flex-1 flex flex-col items-center justify-center gap-1 relative">
-              {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-emerald-50 dark:bg-emerald-900/250 rounded-full" />}
-              <div className={`p-1.5 rounded-xl ${on ? "bg-emerald-50 dark:bg-emerald-900/25" : ""}`}>
-                <item.Icon size={22} className={on ? "text-emerald-600" : "text-slate-400 dark:text-slate-500"} />
+              {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-primary rounded-full" />}
+              <div className={`p-1.5 rounded-lg ${on ? "bg-accent dark:bg-accent/15" : ""}`}>
+                <item.Icon size={22} className={on ? "text-primary" : "text-slate-400 dark:text-slate-500"} />
               </div>
-              <span className={`text-[10px] font-semibold leading-none ${on ? "text-emerald-600" : "text-slate-400 dark:text-slate-500"}`}>{item.label}</span>
+              <span className={`text-[10px] font-semibold leading-none ${on ? "text-primary" : "text-slate-400 dark:text-slate-500"}`}>{item.label}</span>
             </button>
           );
         })}
         <button onClick={onMore} className="flex-1 flex flex-col items-center justify-center gap-1 relative">
-          {isMore && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-emerald-50 dark:bg-emerald-900/250 rounded-full" />}
-          <div className={`p-1.5 rounded-xl ${isMore ? "bg-emerald-50 dark:bg-emerald-900/25" : ""}`}>
-            <LayoutGrid size={22} className={isMore ? "text-emerald-600" : "text-slate-400 dark:text-slate-500"} />
+          {isMore && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-primary rounded-full" />}
+          <div className={`p-1.5 rounded-lg ${isMore ? "bg-accent dark:bg-accent/15" : ""}`}>
+            <LayoutGrid size={22} className={isMore ? "text-primary" : "text-slate-400 dark:text-slate-500"} />
           </div>
-          <span className={`text-[10px] font-semibold leading-none ${isMore ? "text-emerald-600" : "text-slate-400 dark:text-slate-500"}`}>More</span>
+          <span className={`text-[10px] font-semibold leading-none ${isMore ? "text-primary" : "text-slate-400 dark:text-slate-500"}`}>More</span>
         </button>
       </div>
     </nav>
@@ -393,7 +398,7 @@ function MoreDrawer({ active, setActive, onClose, onLogout, dark, setDark }: {
     let ic = "text-slate-600";
     
     if (item.id === "allocations") { bg = "bg-blue-100"; ic = "text-blue-600"; }
-    else if (item.id === "payments") { bg = "bg-emerald-100"; ic = "text-emerald-600"; }
+    else if (item.id === "payments") { bg = "bg-accent/50 dark:bg-accent/10"; ic = "text-primary"; }
     else if (item.id === "maintenance") { bg = "bg-amber-100"; ic = "text-amber-600"; }
     else if (item.id === "reports") { bg = "bg-violet-100"; ic = "text-violet-600"; }
     else if (item.id === "settings") { bg = "bg-slate-100 dark:bg-slate-800"; ic = "text-slate-600 dark:text-slate-400"; }
@@ -415,12 +420,12 @@ function MoreDrawer({ active, setActive, onClose, onLogout, dark, setDark }: {
           <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full" />
         </div>
         <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0">TR</div>
+          <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0">TR</div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Taban Riak</p>
             <p className="text-xs text-slate-400 dark:text-slate-500 truncate">Kasalita Inn · Admin</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
+          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
             <X size={16} />
           </button>
         </div>
@@ -428,24 +433,24 @@ function MoreDrawer({ active, setActive, onClose, onLogout, dark, setDark }: {
           {grid.map(item => {
             const on = active === item.id;
             return (
-              <button key={item.id} onClick={() => { setActive(item.id); onClose(); }} className={`flex flex-col items-center gap-2 py-3.5 rounded-2xl transition-all active:scale-95 relative ${on ? "bg-emerald-50 dark:bg-emerald-900/25 ring-1 ring-emerald-200" : "bg-slate-50 dark:bg-slate-800"}`}>
-                <div className={`w-10 h-10 ${on ? "bg-emerald-100" : item.bg} rounded-2xl flex items-center justify-center`}>
-                  <item.Icon size={18} className={on ? "text-emerald-600" : item.ic} />
+              <button key={item.id} onClick={() => { setActive(item.id); onClose(); }} className={`flex flex-col items-center gap-2 py-3.5 rounded-lg transition-all active:scale-95 relative ${on ? "bg-accent/40 dark:bg-accent/10 ring-1 ring-primary/10" : "bg-slate-50 dark:bg-slate-800"}`}>
+                <div className={`w-10 h-10 ${on ? "bg-accent" : item.bg} rounded-lg flex items-center justify-center`}>
+                  <item.Icon size={18} className={on ? "text-primary" : item.ic} />
                 </div>
-                <span className={`text-[11px] font-semibold ${on ? "text-emerald-700" : "text-slate-600 dark:text-slate-400"}`}>{item.label}</span>
+                <span className={`text-[11px] font-semibold ${on ? "text-primary" : "text-slate-600 dark:text-slate-400"}`}>{item.label}</span>
               </button>
             );
           })}
         </div>
         <div className="px-5 pb-6 space-y-2">
-          <button onClick={() => setDark(!dark)} className="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl">
+          <button onClick={() => setDark(!dark)} className="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-xl flex items-center justify-center">
+              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
                 {dark ? <Sun size={15} className="text-slate-600 dark:text-slate-400" /> : <Moon size={15} className="text-slate-600 dark:text-slate-400" />}
               </div>
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{dark ? "Light mode" : "Dark mode"}</span>
             </div>
-            <div className={`w-11 h-6 rounded-full relative transition-colors ${dark ? "bg-emerald-50 dark:bg-emerald-900/250" : "bg-slate-200 dark:bg-slate-700"}`}>
+            <div className={`w-11 h-6 rounded-full relative transition-colors ${dark ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}>
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${dark ? "translate-x-5" : "translate-x-1"}`} />
             </div>
           </button>
@@ -466,31 +471,402 @@ function MoreDrawer({ active, setActive, onClose, onLogout, dark, setDark }: {
 
 // ─── Reports ──────────────────────────────────────────────────
 
+type ReportType = "revenue" | "occupancy" | "maintenance" | "tenant" | null;
+
+interface OccupancyBed {
+  bed_id: number;
+  bed_number: number;
+  is_occupied: boolean;
+  student_name: string | null;
+}
+
+interface OccupancyReportItem {
+  room_id: number;
+  room_number: string;
+  gender: string;
+  occupied_beds: number;
+  available_beds: number;
+  total_beds: number;
+  beds: OccupancyBed[];
+}
+
+interface UnpaidReportItem {
+  student_id: number;
+  full_name: string;
+  booking_id: number;
+  payment_id: number;
+  room_number: string;
+  bed_number: number;
+  semester: string;
+  year: number;
+  amount: number;
+}
+
 function ReportsPage({ dark }: { dark: boolean }) {
-  return (
-    <div>
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Reports</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-        {[
-          { title: "Revenue Report",    desc: "Monthly and annual revenue breakdown", Icon: DollarSign, ib: "bg-emerald-100", ic: "text-emerald-600" },
-          { title: "Occupancy Report",  desc: "Unit occupancy rates and trends",       Icon: Building2,  ib: "bg-blue-100",    ic: "text-blue-600"   },
-          { title: "Maintenance Report",desc: "Request volume and resolution times",   Icon: Wrench,     ib: "bg-amber-100",   ic: "text-amber-600"  },
-          { title: "Tenant Report",     desc: "Retention and payment reliability",     Icon: Users,      ib: "bg-violet-100",  ic: "text-violet-600" },
-        ].map(r => (
-          <button key={r.title} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-4 shadow-sm flex items-start gap-3 hover:border-emerald-300 transition-all text-left group active:scale-[0.99]">
-            <div className={`w-10 h-10 ${r.ib} rounded-2xl flex items-center justify-center flex-shrink-0`}><r.Icon size={18} className={r.ic}/></div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 transition-colors">{r.title}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{r.desc}</p>
+  const [activeReport, setActiveReport] = useState<ReportType>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Data states
+  const [occupancyData, setOccupancyData] = useState<OccupancyReportItem[]>([]);
+  const [unpaidData, setUnpaidData] = useState<UnpaidReportItem[]>([]);
+  const [summaryData, setSummaryData] = useState<{
+    total_students: number;
+    revenue_collected: number;
+    pending: number;
+    occupied_beds: number;
+    total_beds: number;
+  } | null>(null);
+  const [studentsData, setStudentsData] = useState<ActiveStudent[]>([]);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [expandedRoom, setExpandedRoom] = useState<number | null>(null);
+
+  const loadReportData = useCallback(async (type: ReportType) => {
+    if (!type) return;
+    setLoading(true);
+    setError(null);
+    try {
+      if (type === "revenue") {
+        const [unpaid, summary] = await Promise.all([
+          apiFetch<UnpaidReportItem[]>("/reports/unpaid"),
+          apiFetch<any>("/reports/summary"),
+        ]);
+        setUnpaidData(unpaid);
+        setSummaryData(summary);
+      } else if (type === "occupancy") {
+        const [occ, summary] = await Promise.all([
+          apiFetch<OccupancyReportItem[]>("/reports/occupancy"),
+          apiFetch<any>("/reports/summary"),
+        ]);
+        setOccupancyData(occ);
+        setSummaryData(summary);
+      } else if (type === "tenant") {
+        const students = await apiFetch<ActiveStudent[]>("/students");
+        setStudentsData(students);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to load report data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadReportData(activeReport);
+  }, [activeReport, loadReportData]);
+
+  const handleConfirmPayment = async (paymentId: number) => {
+    try {
+      await apiFetch(`/payments/${paymentId}/confirm`, { method: "POST" });
+      toast.success("Payment confirmed successfully!");
+      // Reload revenue report data
+      loadReportData("revenue");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to confirm payment");
+    }
+  };
+
+  if (activeReport === "revenue") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setActiveReport(null)} className="px-3 py-2 bg-muted hover:bg-muted/80 text-sm font-medium rounded-lg text-foreground transition-colors">
+              ← Back
+            </button>
+            <h1 className="text-2xl font-semibold text-foreground">Revenue Report Detail</h1>
+          </div>
+          <button onClick={() => loadReportData("revenue")} className="text-sm text-primary font-medium hover:underline">Refresh</button>
+        </div>
+
+        {loading ? (
+          <div className="py-20 flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={28}/></div>
+        ) : error ? (
+          <div className="bg-destructive/5 border border-destructive/20 text-destructive p-4 rounded-lg text-sm">{error}</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-card border border-border p-5 rounded-lg shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Rent Collected</p>
+                <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-500 mt-2">UGX {(summaryData?.revenue_collected || 0).toLocaleString()}</p>
+              </div>
+              <div className="bg-card border border-border p-5 rounded-lg shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Outstanding / Unpaid</p>
+                <p className="text-2xl font-semibold text-amber-600 dark:text-amber-500 mt-2">UGX {(summaryData?.pending || 0).toLocaleString()}</p>
+              </div>
+              <div className="bg-card border border-border p-5 rounded-lg shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Collection Rate</p>
+                <p className="text-2xl font-semibold text-foreground mt-2">
+                  {((summaryData?.revenue_collected || 0) + (summaryData?.pending || 0)) > 0
+                    ? (((summaryData?.revenue_collected || 0) / ((summaryData?.revenue_collected || 0) + (summaryData?.pending || 0))) * 100).toFixed(1)
+                    : "0.0"}%
+                </p>
+              </div>
             </div>
-            <ArrowUpRight size={15} className="text-slate-300 group-hover:text-emerald-500 transition-colors mt-0.5 flex-shrink-0"/>
+
+            <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+              <h3 className="text-base font-semibold text-foreground mb-4">Unpaid / Pending Payments</h3>
+              {unpaidData.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 bg-muted rounded-lg mx-auto mb-3 flex items-center justify-center">
+                    <Check size={24} className="text-emerald-600 dark:text-emerald-500" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">All payments are up-to-date!</p>
+                  <p className="text-xs text-muted-foreground mt-1">No pending payments at this time</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-border text-muted-foreground font-medium">
+                        <th className="py-3 px-2">Tenant Name</th>
+                        <th className="py-3 px-2">Room & Bed</th>
+                        <th className="py-3 px-2">Semester</th>
+                        <th className="py-3 px-2">Amount</th>
+                        <th className="py-3 px-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {unpaidData.map(item => (
+                        <tr key={item.payment_id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-2 font-medium text-foreground">{item.full_name}</td>
+                          <td className="py-3 px-2 text-muted-foreground">{item.room_number} · Bed {item.bed_number}</td>
+                          <td className="py-3 px-2 text-muted-foreground">{item.semester} {item.year}</td>
+                          <td className="py-3 px-2 font-semibold text-amber-600 dark:text-amber-500">UGX {item.amount.toLocaleString()}</td>
+                          <td className="py-3 px-2 text-right">
+                            <button onClick={() => handleConfirmPayment(item.payment_id)} className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors shadow-sm">
+                              Confirm
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (activeReport === "occupancy") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setActiveReport(null)} className="px-3 py-2 bg-muted hover:bg-muted/80 text-sm font-medium rounded-lg text-foreground transition-colors">
+              ← Back
+            </button>
+            <h1 className="text-2xl font-semibold text-foreground">Occupancy Report Detail</h1>
+          </div>
+          <button onClick={() => loadReportData("occupancy")} className="text-sm text-primary font-medium hover:underline">Refresh</button>
+        </div>
+
+        {loading ? (
+          <div className="py-20 flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={28}/></div>
+        ) : error ? (
+          <div className="bg-destructive/5 border border-destructive/20 text-destructive p-4 rounded-lg text-sm">{error}</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-card border border-border p-5 rounded-lg shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Beds</p>
+                <p className="text-2xl font-semibold text-foreground mt-2">{summaryData?.total_beds || 0}</p>
+              </div>
+              <div className="bg-card border border-border p-5 rounded-lg shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Occupied Beds</p>
+                <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-500 mt-2">{summaryData?.occupied_beds || 0}</p>
+              </div>
+              <div className="bg-card border border-border p-5 rounded-lg shadow-sm">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Occupancy Rate</p>
+                <p className="text-2xl font-semibold text-primary mt-2">
+                  {summaryData?.total_beds ? ((summaryData.occupied_beds / summaryData.total_beds) * 100).toFixed(1) : "0.0"}%
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+              <h3 className="text-base font-semibold text-foreground mb-4">Hostel Rooms Inventory</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {occupancyData.map(room => {
+                  const isExpanded = expandedRoom === room.room_id;
+                  return (
+                    <div key={room.room_id} className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedRoom(isExpanded ? null : room.room_id)}>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Room {room.room_number}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Gender: {room.gender}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-1 text-xs font-medium rounded-lg border ${room.occupied_beds === room.total_beds ? "bg-destructive/5 text-destructive border-destructive/20" : "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-500 border-emerald-200/50 dark:border-emerald-800/30"}`}>
+                            {room.occupied_beds} / {room.total_beds} beds
+                          </span>
+                          <span className="text-muted-foreground text-xs">{isExpanded ? "▲" : "▼"}</span>
+                        </div>
+                      </div>
+                      
+                      {isExpanded && (
+                        <div className="mt-4 pt-4 border-t border-border space-y-2">
+                          {room.beds.map(bed => (
+                            <div key={bed.bed_id} className="flex justify-between items-center text-xs py-2">
+                              <span className="text-muted-foreground">Bed {bed.bed_number}</span>
+                              {bed.is_occupied ? (
+                                <span className="font-medium text-emerald-600 dark:text-emerald-500 truncate max-w-[180px]" title={bed.student_name || "Occupied"}>
+                                  {bed.student_name}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground italic">Vacant</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (activeReport === "tenant") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setActiveReport(null)} className="px-3 py-2 bg-muted hover:bg-muted/80 text-sm font-medium rounded-lg text-foreground transition-colors">
+              ← Back
+            </button>
+            <h1 className="text-2xl font-semibold text-foreground">Tenant / Student Report</h1>
+          </div>
+          <button onClick={() => loadReportData("tenant")} className="text-sm text-primary font-medium hover:underline">Refresh</button>
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm space-y-4">
+          <div className="relative">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"/>
+            <input value={studentSearch} onChange={e => setStudentSearch(e.target.value)} placeholder="Search tenants by name, university, or course..." className="w-full pl-10 pr-4 py-2.5 bg-input-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+          </div>
+
+          {loading ? (
+            <div className="py-20 flex items-center justify-center"><Loader2 className="animate-spin text-primary" size={28}/></div>
+          ) : error ? (
+            <div className="bg-destructive/5 border border-destructive/20 text-destructive p-4 rounded-lg text-sm">{error}</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground font-medium">
+                    <th className="py-3 px-2">Name</th>
+                    <th className="py-3 px-2">University & Course</th>
+                    <th className="py-3 px-2">Room & Bed</th>
+                    <th className="py-3 px-2">Phone</th>
+                    <th className="py-3 px-2">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {studentsData
+                    .filter(s => {
+                      const q = studentSearch.toLowerCase();
+                      return s.full_name.toLowerCase().includes(q) || s.university.toLowerCase().includes(q) || s.course.toLowerCase().includes(q);
+                    })
+                    .map(s => (
+                      <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3 px-2 font-medium text-foreground">{s.full_name}</td>
+                        <td className="py-3 px-2">
+                          <p className="text-foreground">{s.university}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{s.course} (Yr {s.year_of_study})</p>
+                        </td>
+                        <td className="py-3 px-2 font-medium text-foreground">Room {s.room_number} · Bed {s.bed_number}</td>
+                        <td className="py-3 px-2 text-muted-foreground">{s.phone}</td>
+                        <td className="py-3 px-2 text-muted-foreground">{s.semester_joined} {s.year_joined}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (activeReport === "maintenance") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setActiveReport(null)} className="px-3 py-2 bg-muted hover:bg-muted/80 text-sm font-medium rounded-lg text-foreground transition-colors">
+            ← Back
+          </button>
+          <h1 className="text-2xl font-semibold text-foreground">Maintenance Report Detail</h1>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "Open Requests", val: "3", col: "text-primary" },
+            { label: "In Progress", val: "5", col: "text-amber-600 dark:text-amber-500" },
+            { label: "Resolved", val: "28", col: "text-emerald-600 dark:text-emerald-500" },
+            { label: "Avg Resolution", val: "2.4 days", col: "text-foreground" },
+          ].map(s => (
+            <div key={s.label} className="bg-card border border-border p-5 rounded-lg shadow-sm">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">{s.label}</p>
+              <p className={`text-xl font-semibold mt-2 ${s.col}`}>{s.val}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+          <h3 className="text-base font-semibold text-foreground mb-4">Recent Maintenance Logs</h3>
+          <div className="space-y-3">
+            {[
+              { id: 1, desc: "Water leak in Room R12 bathroom", cat: "Plumbing", pri: "Critical", stat: "In Progress" },
+              { id: 2, desc: "A/C unit making loud noise in R08", cat: "HVAC", pri: "Medium", stat: "Open" },
+              { id: 3, desc: "Flickering lights in corridor", cat: "Electrical", pri: "Low", stat: "Completed" },
+              { id: 4, desc: "Cabinet door broken in Room 07B", cat: "Carpentry", pri: "Low", stat: "Completed" },
+            ].map(r => (
+              <div key={r.id} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg text-sm">
+                <div>
+                  <p className="font-medium text-foreground">{r.desc}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{r.cat} · Priority: {r.pri}</p>
+                </div>
+                <Badge status={r.stat}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold text-foreground">Reports</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {[
+          { id: "revenue", title: "Revenue Report",    desc: "Monthly and annual revenue breakdown", Icon: DollarSign, ib: "bg-emerald-50 dark:bg-emerald-950/20", ic: "text-emerald-600 dark:text-emerald-500" },
+          { id: "occupancy", title: "Occupancy Report",  desc: "Unit occupancy rates and trends",       Icon: Building2,  ib: "bg-primary/5 dark:bg-primary/10", ic: "text-primary"   },
+          { id: "maintenance", title: "Maintenance Report",desc: "Request volume and resolution times",   Icon: Wrench,     ib: "bg-amber-50 dark:bg-amber-950/20",   ic: "text-amber-600 dark:text-amber-500"  },
+          { id: "tenant", title: "Tenant Report",     desc: "Retention and payment reliability",     Icon: Users,      ib: "bg-violet-50 dark:bg-violet-950/20",  ic: "text-violet-600 dark:text-violet-500" },
+        ].map(r => (
+          <button key={r.title} onClick={() => setActiveReport(r.id as ReportType)} className="bg-card border border-border rounded-lg p-5 shadow-sm flex items-start gap-4 hover:shadow-md hover:border-primary/30 transition-all text-left group active:scale-[0.98]">
+            <div className={`w-12 h-12 ${r.ib} rounded-lg flex items-center justify-center flex-shrink-0`}><r.Icon size={20} className={r.ic}/></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">{r.title}</p>
+              <p className="text-xs text-muted-foreground mt-1">{r.desc}</p>
+            </div>
+            <ArrowUpRight size={18} className="text-muted-foreground group-hover:text-primary transition-colors mt-1 flex-shrink-0"/>
           </button>
         ))}
       </div>
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div><h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Annual Revenue 2024</h3><p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Monthly collected rent</p></div>
-          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/25 px-2 py-1 rounded-full flex items-center gap-1"><TrendingUp size={11}/>+8.7% YoY</span>
+      <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <div><h3 className="text-base font-semibold text-foreground">Annual Revenue 2024</h3><p className="text-xs text-muted-foreground mt-1">Monthly collected rent</p></div>
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-emerald-200/50 dark:border-emerald-800/30"><TrendingUp size={13}/>+8.7% YoY</span>
         </div>
         <BarChart dark={dark} />
       </div>
@@ -502,64 +878,236 @@ function ReportsPage({ dark }: { dark: boolean }) {
 
 function SettingsPage() {
   const [tab, setTab] = useState("company");
+  const [companyName, setCompanyName] = useState("Parkview Residences LLC");
+  const [email, setEmail] = useState("admin@parkviewresidences.com");
+  const [phone, setPhone] = useState("(415) 555-0200");
+  const [address, setAddress] = useState("123 Park Ave, San Francisco");
+  const [city, setCity] = useState("San Francisco");
+  const [zip, setZip] = useState("94102");
+
+  const [securitySettings, setSecuritySettings] = useState([
+    { id: "tfa", label: "Two-Factor Auth", desc: "Authenticator app or SMS", enabled: true, Icon: Shield },
+    { id: "alerts", label: "Login Alerts", desc: "Email on each new login", enabled: true, Icon: Bell },
+    { id: "timeout", label: "Session Timeout", desc: "Auto sign-out after 30m", enabled: false, Icon: Lock },
+    { id: "api", label: "API Access", desc: "Third-party integrations", enabled: false, Icon: Zap },
+  ]);
+
+  const [users, setUsers] = useState([
+    { name: "Taban Riak", email: "taban@parkviewresidences.com", role: "Owner", active: true },
+    { name: "Jane Miller", email: "jane@parkviewresidences.com", role: "Manager", active: true },
+    { name: "Bob Cooper", email: "bob@parkviewresidences.com", role: "Maintenance", active: false },
+  ]);
+
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState("Manager");
+
+  const handleSaveCompany = () => {
+    toast.success("Company profile saved successfully!");
+  };
+
+  const handleToggleSecurity = (id: string) => {
+    setSecuritySettings(prev =>
+      prev.map(s => {
+        if (s.id === id) {
+          const nextState = !s.enabled;
+          toast.success(`${s.label} has been ${nextState ? "enabled" : "disabled"}.`);
+          return { ...s, enabled: nextState };
+        }
+        return s;
+      })
+    );
+  };
+
+  const handleAddUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName || !newUserEmail) return;
+    setUsers(prev => [...prev, { name: newUserName, email: newUserEmail, role: newUserRole, active: true }]);
+    toast.success(`User ${newUserName} invited successfully!`);
+    setNewUserName("");
+    setNewUserEmail("");
+    setShowAddUser(false);
+  };
+
   const tabs = [
     { id: "company",  label: "Company",  Icon: Building2 },
     { id: "security", label: "Security", Icon: Shield     },
     { id: "billing",  label: "Billing",  Icon: CreditCard },
     { id: "users",    label: "Users",    Icon: Users      },
   ];
+
+  const inputCls = "w-full px-3.5 py-2.5 bg-input-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow";
+
   return (
-    <div>
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">Settings</h1>
-      <div className="flex gap-2 overflow-x-auto pb-1 mb-5 -mx-4 px-4 lg:mx-0 lg:px-0">
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0 scrollbar-hide">
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap flex-shrink-0 min-h-[44px] ${tab === t.id ? "bg-emerald-600 text-white" : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"}`}>
-            <t.Icon size={13}/>{t.label}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${tab === t.id ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+            <t.Icon size={16}/>{t.label}
           </button>
         ))}
       </div>
+      
       {tab === "company" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm max-w-2xl">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-5">Company Profile</h3>
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm max-w-2xl">
+          <h3 className="text-base font-semibold text-foreground mb-6">Company Profile</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[["Company Name","Parkview Residences LLC"],["Contact Email","admin@parkviewresidences.com"],["Phone","(415) 555-0200"],["Address","123 Park Ave, San Francisco"],["City","San Francisco"],["ZIP","94102"]].map(([l,v]) => (
-              <div key={l}><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">{l}</label><input defaultValue={v} className="w-full px-3.5 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 min-h-[44px]"/></div>
-            ))}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Company Name</label>
+              <input value={companyName} onChange={e => setCompanyName(e.target.value)} className={inputCls}/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Contact Email</label>
+              <input value={email} onChange={e => setEmail(e.target.value)} className={inputCls}/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Phone</label>
+              <input value={phone} onChange={e => setPhone(e.target.value)} className={inputCls}/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">Address</label>
+              <input value={address} onChange={e => setAddress(e.target.value)} className={inputCls}/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">City</label>
+              <input value={city} onChange={e => setCity(e.target.value)} className={inputCls}/>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">ZIP</label>
+              <input value={zip} onChange={e => setZip(e.target.value)} className={inputCls}/>
+            </div>
           </div>
-          <div className="flex justify-end mt-5 pt-5 border-t border-slate-100 dark:border-slate-800">
-            <button className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl px-5 py-3 text-sm"><Check size={14}/>Save Changes</button>
+          <div className="flex justify-end mt-6 pt-6 border-t border-border">
+            <button onClick={handleSaveCompany} className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg px-5 py-2.5 text-sm shadow-sm transition-colors"><Check size={16}/>Save Changes</button>
           </div>
         </div>
       )}
+      
       {tab === "security" && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 shadow-sm max-w-2xl">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-5">Security Settings</h3>
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm max-w-2xl">
+          <h3 className="text-base font-semibold text-foreground mb-6">Security Settings</h3>
           <div className="space-y-1">
-            {[
-              { label: "Two-Factor Auth",  desc: "Authenticator app or SMS", enabled: true,  Icon: Shield },
-              { label: "Login Alerts",     desc: "Email on each new login",  enabled: true,  Icon: Bell   },
-              { label: "Session Timeout",  desc: "Auto sign-out after 30m",  enabled: false, Icon: Lock   },
-              { label: "API Access",       desc: "Third-party integrations", enabled: false, Icon: Zap    },
-            ].map((s, i, arr) => (
-              <div key={s.label} className={`flex items-center justify-between py-4 min-h-[68px] ${i<arr.length-1?"border-b border-slate-50":""}`}>
+            {securitySettings.map((s, i, arr) => (
+              <div key={s.label} className={`flex items-center justify-between py-4 ${i<arr.length-1?"border-b border-border":""}`}>
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center mt-0.5 flex-shrink-0"><s.Icon size={15} className="text-slate-500 dark:text-slate-400"/></div>
-                  <div><p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{s.label}</p><p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{s.desc}</p></div>
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0"><s.Icon size={18} className="text-muted-foreground"/></div>
+                  <div><p className="text-sm font-medium text-foreground">{s.label}</p><p className="text-xs text-muted-foreground mt-1">{s.desc}</p></div>
                 </div>
-                <div className={`w-11 h-6 rounded-full relative flex-shrink-0 ml-4 cursor-pointer transition-colors ${s.enabled?"bg-emerald-50 dark:bg-emerald-900/250":"bg-slate-200 dark:bg-slate-700"}`}>
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${s.enabled?"translate-x-5":"translate-x-1"}`}/>
-                </div>
+                <button onClick={() => handleToggleSecurity(s.id)} className={`w-12 h-6 rounded-full relative flex-shrink-0 ml-4 transition-colors ${s.enabled?"bg-primary":"bg-muted"}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${s.enabled?"translate-x-6":"translate-x-1"}`}/>
+                </button>
               </div>
             ))}
           </div>
         </div>
       )}
-      {(tab === "billing" || tab === "users") && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-12 shadow-sm flex flex-col items-center max-w-2xl">
-          <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-4"><Settings size={22} className="text-slate-400 dark:text-slate-500"/></div>
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{tabs.find(t2=>t2.id===tab)?.label} Settings</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Coming soon</p>
+      
+      {tab === "billing" && (
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm max-w-2xl space-y-6">
+          <h3 className="text-base font-semibold text-foreground">Billing & Subscription</h3>
+          <div className="flex items-center justify-between p-5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-lg">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Current Plan</p>
+              <p className="text-lg font-semibold text-emerald-700 dark:text-emerald-400 mt-1">Enterprise Premium Hostel Plan</p>
+              <p className="text-xs text-muted-foreground mt-1">Billed annually · $99/month</p>
+            </div>
+            <span className="px-3 py-1.5 bg-emerald-600 text-white font-semibold text-xs rounded-lg">Active</span>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-foreground">Payment Method</h4>
+            <div className="flex items-center justify-between p-4 border border-border rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1.5 bg-muted rounded-lg text-foreground font-semibold text-xs">VISA</div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Visa ending in 4242</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Expires 12/28</p>
+                </div>
+              </div>
+              <button className="text-xs text-muted-foreground hover:text-foreground font-medium transition-colors">Edit</button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-foreground">Recent Invoices</h4>
+            <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
+              {[
+                { inv: "INV-0842", date: "Jun 01, 2026", amt: "$1,188.00" },
+                { inv: "INV-0711", date: "Jun 01, 2025", amt: "$1,188.00" },
+              ].map(inv => (
+                <div key={inv.inv} className="flex justify-between items-center p-4 text-sm bg-muted/20">
+                  <div>
+                    <p className="font-medium text-foreground">{inv.inv}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{inv.date}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="font-semibold text-foreground">{inv.amt}</span>
+                    <button className="text-primary hover:underline font-medium">Download</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {tab === "users" && (
+        <div className="bg-card border border-border rounded-lg p-6 shadow-sm max-w-2xl space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-base font-semibold text-foreground">Team Management</h3>
+            <button onClick={() => setShowAddUser(true)} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg flex items-center gap-2 shadow-sm transition-colors">
+              <Plus size={16}/>Invite User
+            </button>
+          </div>
+
+          {showAddUser && (
+            <form onSubmit={handleAddUser} className="p-5 border border-primary/20 bg-primary/5 rounded-lg space-y-4">
+              <h4 className="text-sm font-semibold text-primary">Invite New Team Member</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">Name</label>
+                  <input required value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="John Doe" className="w-full px-3 py-2 text-sm bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">Email</label>
+                  <input required type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="john@company.com" className="w-full px-3 py-2 text-sm bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">Role</label>
+                  <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} className="w-full px-3 py-2 text-sm bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="Manager">Manager</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Viewer">Viewer</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 text-sm font-medium">
+                <button type="button" onClick={() => setShowAddUser(false)} className="px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-lg text-foreground transition-colors">Cancel</button>
+                <button type="submit" className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors">Send Invitation</button>
+              </div>
+            </form>
+          )}
+
+          <div className="divide-y divide-border">
+            {users.map(u => (
+              <div key={u.email} className="flex justify-between items-center py-4 text-sm">
+                <div className="flex items-center gap-3">
+                  <Avatar initials={u.name.split(" ").map(n => n[0]).join("")} size="md"/>
+                  <div>
+                    <p className="font-medium text-foreground">{u.name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{u.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-lg text-xs">{u.role}</span>
+                  <span className={`w-2.5 h-2.5 rounded-full ${u.active ? "bg-emerald-500" : "bg-slate-300"}`} title={u.active ? "Active" : "Inactive"}/>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -574,26 +1122,26 @@ function AuthPage({ onLogin }: { onLogin: () => void }) {
   const [pass,  setPass]  = useState("");
   const [name,  setName]  = useState("");
   const [co,    setCo]    = useState("");
-  const field = "w-full px-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[52px]";
+  const field = "w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary min-h-[44px]";
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white dark:bg-slate-950">
-      <div className="hidden lg:flex w-[480px] flex-shrink-0 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex w-[480px] flex-shrink-0 bg-gradient-to-br from-indigo-600 via-violet-750 to-purple-900 flex-col justify-between p-12 relative overflow-hidden">
         {[160,280,400,520].map(s=><div key={s} className="absolute rounded-full border border-white/10 pointer-events-none" style={{width:s,height:s,top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}/>)}
         <div className="relative flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center"><Building2 size={16} className="text-white"/></div>
-          <span className="text-white font-bold text-lg">APT Manager</span>
+          <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center"><Building2 size={16} className="text-white"/></div>
+          <span className="text-white font-bold text-lg">Dormir Manager</span>
         </div>
         <div className="relative space-y-8">
-          <div><h2 className="text-4xl font-bold text-white leading-tight">Property management made effortless.</h2><p className="text-emerald-100/80 mt-3 text-base leading-relaxed">The modern platform for landlords who want full control.</p></div>
+          <div><h2 className="text-4xl font-bold text-white leading-tight">Property management made effortless.</h2><p className="text-indigo-100/80 mt-3 text-base leading-relaxed">The modern platform for landlords who want full control.</p></div>
           <div className="space-y-3">{["Manage all units from one dashboard","Automate rent collection","Track maintenance in real-time","Generate reports instantly"].map(item=><div key={item} className="flex items-center gap-3"><div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0"><Check size={11} className="text-white"/></div><span className="text-sm text-white/80">{item}</span></div>)}</div>
-          <div className="bg-white/10 rounded-2xl p-5 border border-white/20"><div className="flex items-start gap-3 mb-3"><div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">TR</div><div><p className="text-white text-sm font-semibold">Taban Riak</p><p className="text-white/60 text-xs">Kasalita Inn</p></div></div><p className="text-white/80 text-sm leading-relaxed">"APT Manager transformed how we handle our 120-unit portfolio."</p></div>
+          <div className="bg-white/10 rounded-lg p-5 border border-white/20"><div className="flex items-start gap-3 mb-3"><div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">TR</div><div><p className="text-white text-sm font-semibold">Taban Riak</p><p className="text-white/60 text-xs">Kasalita Inn</p></div></div><p className="text-white/80 text-sm leading-relaxed">"Dormir Manager transformed how we handle our portfolio."</p></div>
         </div>
         <div className="relative flex items-center gap-8">{[["120+","Properties"],["4,800+","Units"],["99.9%","Uptime"]].map(([v,l])=><div key={l}><p className="text-2xl font-bold text-white">{v}</p><p className="text-xs text-white/60 mt-0.5">{l}</p></div>)}</div>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 bg-slate-50 dark:bg-slate-950 min-h-screen lg:min-h-0">
         <div className="lg:hidden flex items-center gap-2 mb-8 self-start">
-          <div className="w-8 h-8 bg-emerald-600 rounded-xl flex items-center justify-center"><Building2 size={14} className="text-white"/></div>
-          <span className="font-bold text-slate-900 dark:text-slate-100">APT Manager</span>
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><Building2 size={14} className="text-white"/></div>
+          <span className="font-bold text-slate-900 dark:text-slate-100">Dormir Manager</span>
         </div>
         <div className="w-full max-w-[400px]">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{mode==="login"?"Welcome back":"Create account"}</h1>
@@ -605,17 +1153,17 @@ function AuthPage({ onLogin }: { onLogin: () => void }) {
             </>}
             <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email address</label><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" type="email" className={field}/></div>
             <div>
-              <div className="flex items-center justify-between mb-1.5"><label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>{mode==="login"&&<button className="text-xs text-emerald-600 font-semibold">Forgot password?</button>}</div>
+              <div className="flex items-center justify-between mb-1.5"><label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>{mode==="login"&&<button className="text-xs text-primary font-semibold">Forgot password?</button>}</div>
               <input value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" type="password" className={field}/>
             </div>
-            <button onClick={onLogin} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl text-sm mt-1 min-h-[56px]">
-              {mode==="login"?"Sign In →":"Start Free Trial →"}
+            <button onClick={onLogin} className="w-full bg-primary hover:bg-primary/95 text-white font-semibold py-3 rounded-lg text-sm mt-1 min-h-[48px] shadow-sm active:scale-[0.98] transition-all">
+              {mode==="login"?"Sign In":"Start Free Trial"}
             </button>
           </div>
           <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-5">
-            {mode==="login"?"No account? ":"Have one? "}<button onClick={()=>setMode(mode==="login"?"register":"login")} className="text-emerald-600 font-semibold hover:underline">{mode==="login"?"Start free trial":"Sign in"}</button>
+            {mode==="login"?"No account? ":"Have one? "}<button onClick={()=>setMode(mode==="login"?"register":"login")} className="text-primary font-semibold hover:underline">{mode==="login"?"Start free trial":"Sign in"}</button>
           </p>
-          {mode==="login"&&<button onClick={onLogin} className="w-full mt-3 py-3.5 border-2 border-dashed border-emerald-300 text-emerald-600 text-xs font-bold rounded-2xl hover:bg-emerald-50 dark:bg-emerald-900/25 dark:hover:bg-emerald-900/20">⚡ Demo — Enter dashboard</button>}
+          {mode==="login"&&<button onClick={onLogin} className="w-full mt-3 py-3 border-2 border-dashed border-primary/30 text-primary text-xs font-semibold rounded-lg hover:bg-primary/5 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all">⚡ Demo — Enter dashboard</button>}
         </div>
       </div>
     </div>
@@ -661,7 +1209,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.style.fontFamily = "'Plus Jakarta Sans', system-ui, sans-serif";
+    document.documentElement.style.fontFamily = "Soehne, 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
+    document.documentElement.style.fontSize = "18px";
     if (dark) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
   }, [dark]);
@@ -718,6 +1267,7 @@ export default function App() {
           {renderPage()}
         </div>
       </main>
+      <Toaster />
     </div>
   );
 }

@@ -1,417 +1,149 @@
 /**
- * BookingsPage — wired to Dormir API backend
+ * BookingsPage — active + historical bookings derived from student list
+ * The backend exposes students with their active booking embedded.
+ * Historical (checked-out) bookings are not queryable yet, so this page
+ * shows all currently active bookings with checkout action.
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Search, Plus, Edit, X, Check, Loader2, AlertCircle, Calendar, CheckCircle, XCircle,
+  Search, Loader2, AlertCircle, Calendar, LogOut,
 } from "lucide-react";
-import { listBookings, createBooking, updateBooking } from "../lib/api/bookings";
-import { listStudents } from "../lib/api/students";
-import { listRooms } from "../lib/api/rooms";
-import { listPeriods } from "../lib/api/periods";
-import type { Booking, BookingCreate, BookingStatus, Student, Room, AcademicPeriod } from "../lib/types";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface BookingFormData {
-  student_id: string;
-  room_id: string;
-  period_id: string;
-  amount_paid: string;
-  paid_on: string;
-}
-
-const EMPTY_FORM: BookingFormData = {
-  student_id: "",
-  room_id: "",
-  period_id: "",
-  amount_paid: "",
-  paid_on: new Date().toISOString().split("T")[0],
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+import { listStudents, checkoutStudent } from "../lib/api/students";
+import type { ActiveStudent } from "../lib/types";
 
 const formatCurrency = (v: number) => `UGX ${v.toLocaleString()}`;
 
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
-
-const STATUS_STYLES: Record<BookingStatus, string> = {
-  pending: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 ring-1 ring-blue-200",
-  confirmed: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200",
-  cancelled: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 ring-1 ring-slate-200",
-};
-
-function Badge({ status }: { status: BookingStatus }) {
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap ${STATUS_STYLES[status]}`}>
-      {status}
-    </span>
-  );
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
+  const [students, setStudents] = useState<ActiveStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">("all");
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState<BookingFormData>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
+  const [checkingOut, setCheckingOut] = useState<number | null>(null);
 
-  const loadData = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [bookingsData, studentsData, roomsData, periodsData] = await Promise.all([
-        listBookings(),
-        listStudents(),
-        listRooms(),
-        listPeriods(),
-      ]);
-      setBookings(bookingsData);
-      setStudents(studentsData);
-      setRooms(roomsData);
-      setPeriods(periodsData);
+      setStudents(await listStudents());
     } catch (err: any) {
-      setError(err.message ?? "Failed to load data");
+      setError(err.message ?? "Failed to load bookings");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { load(); }, [load]);
 
-  const studentMap = useMemo(
-    () => new Map(students.map(s => [s.id, `${s.first_name} ${s.last_name}`])),
-    [students]
-  );
-
-  const roomMap = useMemo(
-    () => new Map(rooms.map(r => [r.id, r.room_number])),
-    [rooms]
-  );
-
-  const periodMap = useMemo(
-    () => new Map(periods.map(p => [p.id, p.name])),
-    [periods]
-  );
-
-  const filtered = bookings.filter((b) => {
-    if (statusFilter !== "all" && b.status !== statusFilter) return false;
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    const studentName = studentMap.get(b.student_id) ?? "";
-    const roomNumber = roomMap.get(b.room_id) ?? "";
-    return (
-      studentName.toLowerCase().includes(term) ||
-      roomNumber.toLowerCase().includes(term)
-    );
-  });
-
-  const handleOpenModal = () => {
-    setFormData(EMPTY_FORM);
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setFormData(EMPTY_FORM);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.student_id || !formData.room_id || !formData.period_id || !formData.amount_paid) {
-      alert("Please fill all required fields");
-      return;
-    }
-    setSaving(true);
+  const handleCheckout = async (student: ActiveStudent) => {
+    if (!confirm(`Check out ${student.full_name} and free bed ${student.bed_number} in ${student.room_number}?`)) return;
+    setCheckingOut(student.id);
     try {
-      const payload: BookingCreate = {
-        student_id: parseInt(formData.student_id),
-        room_id: parseInt(formData.room_id),
-        period_id: parseInt(formData.period_id),
-        amount_paid: parseInt(formData.amount_paid),
-        paid_on: formData.paid_on,
-        status: "pending",
-      };
-      await createBooking(payload);
-      await loadData();
-      handleCloseModal();
+      await checkoutStudent(student.id);
+      setStudents(prev => prev.filter(s => s.id !== student.id));
     } catch (err: any) {
-      alert(err.message ?? "Failed to create booking");
+      alert(err.message ?? "Checkout failed");
     } finally {
-      setSaving(false);
+      setCheckingOut(null);
     }
   };
 
-  const handleStatusUpdate = async (id: number, status: BookingStatus) => {
-    try {
-      await updateBooking(id, { status });
-      await loadData();
-    } catch (err: any) {
-      alert(err.message ?? "Failed to update booking");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3">
-        <Loader2 size={28} className="text-emerald-600 animate-spin" />
-        <p className="text-sm text-slate-500 dark:text-slate-400">Loading bookings…</p>
-      </div>
+  const filtered = useMemo(() => {
+    const t = searchTerm.toLowerCase();
+    return students.filter(s =>
+      s.full_name.toLowerCase().includes(t) ||
+      s.room_number.toLowerCase().includes(t) ||
+      s.university.toLowerCase().includes(t)
     );
-  }
+  }, [students, searchTerm]);  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-24 gap-3">
+      <Loader2 size={28} className="text-primary animate-spin" />
+      <p className="text-sm text-slate-500 dark:text-slate-400">Loading bookings…</p>
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-4">
-        <AlertCircle size={32} className="text-red-500" />
-        <p className="text-sm text-slate-600 dark:text-slate-400 text-center max-w-sm">{error}</p>
-        <button
-          onClick={loadData}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <AlertCircle size={32} className="text-red-500" />
+      <p className="text-sm text-slate-600 dark:text-slate-400 text-center max-w-sm">{error}</p>
+      <button onClick={load} className="px-4 py-2 bg-primary hover:bg-primary/95 text-white text-sm font-semibold rounded-lg shadow-sm active:scale-[0.98] transition-all">Retry</button>
+    </div>
+  );
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Bookings</h1>
-        <button
-          onClick={handleOpenModal}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors"
-        >
-          <Plus size={16} />
-          New Booking
-        </button>
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{students.length} active</span>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search by student or room…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-150/80 dark:border-slate-800/80 p-4 shadow-sm">
+          <p className="text-xl font-bold text-primary">{students.length}</p>
+          <p className="text-xs font-medium text-slate-550 dark:text-slate-400 mt-1.5">Active Bookings</p>
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as BookingStatus | "all")}
-          className="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-150/80 dark:border-slate-800/80 p-4 shadow-sm">
+          <p className="text-xl font-bold text-blue-650 dark:text-blue-400">
+            {students.filter(s => s.semester === "Sem1").length} / {students.filter(s => s.semester === "Sem2").length}
+          </p>
+          <p className="text-xs font-medium text-slate-550 dark:text-slate-400 mt-1.5">Sem 1 / Sem 2</p>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Pending", value: bookings.filter(b => b.status === "pending").length, bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-600" },
-          { label: "Confirmed", value: bookings.filter(b => b.status === "confirmed").length, bg: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-600" },
-          { label: "Total", value: bookings.length, bg: "bg-slate-50 dark:bg-slate-800", text: "text-slate-600" },
-        ].map((stat) => (
-          <div key={stat.label} className={`${stat.bg} rounded-2xl p-4`}>
-            <p className={`text-2xl font-bold ${stat.text}`}>{stat.value}</p>
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1">{stat.label}</p>
-          </div>
-        ))}
+      <div className="relative">
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-450 dark:text-slate-500" />
+        <input
+          type="text"
+          placeholder="Search by name, room, university…"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
+        />
       </div>
 
-      {/* List */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-150/80 dark:border-slate-800/80 shadow-sm overflow-hidden">
         {filtered.length === 0 ? (
-          <div className="px-4 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-            {searchTerm || statusFilter !== "all" ? "No bookings match your filters" : "No bookings yet"}
+          <div className="px-4 py-12 text-center">
+            <Calendar size={32} className="mx-auto text-slate-300 dark:text-slate-650 mb-3" />
+            <p className="text-sm text-slate-450 dark:text-slate-550">
+              {searchTerm ? "No bookings match your search" : "No active bookings"}
+            </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filtered.map((booking) => (
-              <div key={booking.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/40">
+            {filtered.map(student => (
+              <div key={student.booking_id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                        {studentMap.get(booking.student_id) ?? `Student #${booking.student_id}`}
-                      </p>
-                      <Badge status={booking.status} />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                      <span>Room {roomMap.get(booking.room_id) ?? booking.room_id}</span>
-                      <span className="text-slate-300 dark:text-slate-700">•</span>
-                      <span>{periodMap.get(booking.period_id) ?? "Unknown Period"}</span>
-                      <span className="text-slate-300 dark:text-slate-700">•</span>
-                      <span className="font-semibold text-emerald-600">
-                        {formatCurrency(booking.amount_paid)}
-                      </span>
-                      <span className="text-slate-300 dark:text-slate-700">•</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar size={11} />
-                        {formatDate(booking.paid_on)}
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{student.full_name}</p>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-accent dark:bg-accent/15 text-primary ring-1 ring-primary/10">
+                        active
                       </span>
                     </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
+                      <span>{student.room_number} · Bed {student.bed_number}</span>
+                      <span>{student.semester} {student.year}</span>
+                      <span>{student.university}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 dark:text-slate-505 mt-1">Booking #{student.booking_id}</p>
                   </div>
-                  {booking.status === "pending" && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleStatusUpdate(booking.id, "confirmed")}
-                        className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-                        title="Confirm"
-                      >
-                        <CheckCircle size={16} className="text-emerald-600" />
-                      </button>
-                      <button
-                        onClick={() => handleStatusUpdate(booking.id, "cancelled")}
-                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                        title="Cancel"
-                      >
-                        <XCircle size={16} className="text-red-600" />
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => handleCheckout(student)}
+                    disabled={checkingOut === student.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-650 font-semibold text-xs rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
+                  >
+                    {checkingOut === student.id
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <LogOut size={13} />}
+                    Check Out
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                New Booking
-              </h2>
-              <button onClick={handleCloseModal} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-                <X size={18} className="text-slate-600 dark:text-slate-400" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Student *
-                </label>
-                <select
-                  value={formData.student_id}
-                  onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
-                >
-                  <option value="">Select student</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.first_name} {s.last_name} ({s.student_number})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Room *
-                </label>
-                <select
-                  value={formData.room_id}
-                  onChange={(e) => setFormData({ ...formData, room_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
-                >
-                  <option value="">Select room</option>
-                  {rooms.filter(r => r.status === "available").map(r => (
-                    <option key={r.id} value={r.id}>
-                      Room {r.room_number} ({r.room_type}) - {formatCurrency(r.price_per_bed)}/bed
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Academic Period *
-                </label>
-                <select
-                  value={formData.period_id}
-                  onChange={(e) => setFormData({ ...formData, period_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
-                >
-                  <option value="">Select period</option>
-                  {periods.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} {p.is_active && "(Active)"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Booking Fee Paid (UGX) *
-                </label>
-                <input
-                  type="number"
-                  value={formData.amount_paid}
-                  onChange={(e) => setFormData({ ...formData, amount_paid: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
-                  placeholder="e.g. 100000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Date Paid *
-                </label>
-                <input
-                  type="date"
-                  value={formData.paid_on}
-                  onChange={(e) => setFormData({ ...formData, paid_on: e.target.value })}
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm"
-                />
-              </div>
-            </div>
-            <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 px-6 py-4 flex items-center justify-end gap-3">
-              <button
-                onClick={handleCloseModal}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-sm rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={saving}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Creating…
-                  </>
-                ) : (
-                  <>
-                    <Check size={14} />
-                    Create Booking
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

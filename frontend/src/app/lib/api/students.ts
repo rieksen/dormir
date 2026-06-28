@@ -1,32 +1,21 @@
-/**
- * Students API client
- */
-
 import { apiFetch } from "../api";
-import type { Student, StudentCreate, StudentUpdate } from "../types";
+import type { ActiveStudent, StudentRegistration, Booking } from "../types";
 
-export async function listStudents(): Promise<Student[]> {
-  return apiFetch<Student[]>("/students/");
+export async function listStudents(): Promise<ActiveStudent[]> {
+  return apiFetch<ActiveStudent[]>("/students");
 }
 
-export async function getStudent(id: number): Promise<Student> {
-  return apiFetch<Student>(`/students/${id}`);
-}
-
-export async function createStudent(data: StudentCreate): Promise<Student> {
-  return apiFetch<Student>("/students/", {
+export async function registerStudent(data: StudentRegistration): Promise<{
+  student: Omit<ActiveStudent, "booking_id" | "bed_id" | "room_id" | "room_number" | "bed_number" | "semester" | "year">;
+  booking: Booking;
+  payment: { id: number; booking_id: number; amount: number; status: string; confirmed_at: string | null };
+}> {
+  return apiFetch("/students/register", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function updateStudent(id: number, data: StudentUpdate): Promise<Student> {
-  return apiFetch<Student>(`/students/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteStudent(id: number): Promise<void> {
-  await apiFetch<void>(`/students/${id}`, { method: "DELETE" });
+export async function checkoutStudent(studentId: number): Promise<Booking> {
+  return apiFetch<Booking>(`/students/${studentId}/checkout`, { method: "POST" });
 }

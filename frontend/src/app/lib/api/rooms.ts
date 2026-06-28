@@ -1,36 +1,17 @@
-/**
- * Rooms API client
- */
-
 import { apiFetch } from "../api";
-import type { Room, RoomCreate, RoomUpdate, Bed } from "../types";
+import type { Room, AvailableBed, Gender } from "../types";
 
 export async function listRooms(): Promise<Room[]> {
-  return apiFetch<Room[]>("/rooms/");
+  return apiFetch<Room[]>("/rooms");
 }
 
-export async function getRoom(id: number): Promise<Room> {
-  return apiFetch<Room>(`/rooms/${id}`);
-}
-
-export async function createRoom(data: RoomCreate): Promise<Room> {
-  return apiFetch<Room>("/rooms/", {
-    method: "POST",
-    body: JSON.stringify(data),
+export async function updateRoomPrice(roomId: number, pricePerBed: number): Promise<Room> {
+  return apiFetch<Room>(`/rooms/${roomId}/price`, {
+    method: "PUT",
+    body: JSON.stringify({ price_per_bed: pricePerBed }),
   });
 }
 
-export async function updateRoom(id: number, data: RoomUpdate): Promise<Room> {
-  return apiFetch<Room>(`/rooms/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteRoom(id: number): Promise<void> {
-  await apiFetch<void>(`/rooms/${id}`, { method: "DELETE" });
-}
-
-export async function listBeds(roomId: number): Promise<Bed[]> {
-  return apiFetch<Bed[]>(`/rooms/${roomId}/beds`);
+export async function listAvailableBeds(gender: Gender): Promise<AvailableBed[]> {
+  return apiFetch<AvailableBed[]>(`/beds/available?gender=${gender}`);
 }

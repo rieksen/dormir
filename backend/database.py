@@ -39,6 +39,7 @@ def create_db_and_tables() -> None:
     from models_student import Student  # noqa: F401
     from models_booking import Booking  # noqa: F401
     from models_payment import Payment  # noqa: F401
+    from models_maintenance import MaintenanceRequest  # noqa: F401
     from services_hostel import seed_rooms_and_beds
 
     SQLModel.metadata.create_all(engine)
