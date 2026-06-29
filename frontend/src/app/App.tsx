@@ -203,74 +203,71 @@ function TopBar({
   totalRooms: number;
   pendingBookings: number;
 }) {
-  const [notif, setNotif]   = useState(false);
-  const [user,  setUser]    = useState(false);
+  const [user, setUser] = useState(false);
   const label = NAV_ITEMS.find(n => n.id === activePage)?.label ?? "Dormir";
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0e120e] border-b border-[#212521] backdrop-blur-md">
       {/* Mobile */}
       <div className="lg:hidden h-14 flex items-center px-4 gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-            <Building2 size={13} className="text-white" />
+          {/* Dormir logo mark */}
+          <div className="flex items-center gap-1.5">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="8" width="9" height="14" rx="2" fill="#2fa872"/>
+              <rect x="13" y="2" width="9" height="20" rx="2" fill="#2fa872" opacity="0.5"/>
+            </svg>
+            <span className="text-sm font-bold text-white tracking-tight truncate">{label}</span>
           </div>
-          <span className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{label}</span>
         </div>
         <div className="relative flex-shrink-0">
-          <button onClick={() => { setNotif(!notif); setUser(false); }} className="relative w-10 h-10 flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
-            <Bell size={19} />
-            {pendingBookings > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
-            )}
-          </button>
-        </div>
-        <div className="relative flex-shrink-0">
-          <button onClick={() => { setUser(!user); setNotif(false); }} className="w-10 h-10 flex items-center justify-center">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">DR</div>
+          <button onClick={() => { setUser(!user); }} className="w-10 h-10 flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#2fa872] rounded-full flex items-center justify-center text-white text-xs font-bold">DR</div>
           </button>
           {user && <UserPanel dark={dark} setDark={setDark} onLogout={onLogout} onClose={() => setUser(false)} />}
         </div>
       </div>
 
       {/* Desktop */}
-      <div className="hidden lg:flex h-16 items-center px-4 gap-3">
-        <div className="flex items-center gap-2.5 flex-shrink-0 transition-all" style={{ minWidth: collapsed ? 52 : 224 }}>
-          <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400">
-            <Menu size={18} />
+      <div className="hidden lg:flex h-14 items-center px-4 gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0 transition-all" style={{ minWidth: collapsed ? 48 : 216 }}>
+          <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg hover:bg-[#1f381f] text-[#808080] hover:text-[#2fa872] transition-colors">
+            <Menu size={17} />
           </button>
           {!collapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center">
-                <Building2 size={13} className="text-white" />
-              </div>
-              <span className="font-bold text-slate-900 dark:text-slate-100 text-sm">Dormir</span>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="8" width="9" height="14" rx="2" fill="#2fa872"/>
+                <rect x="13" y="2" width="9" height="20" rx="2" fill="#2fa872" opacity="0.5"/>
+              </svg>
+              <span className="font-bold text-white text-sm tracking-tight">Dormir</span>
             </div>
           )}
         </div>
-        <div className="flex-1 max-w-sm">
+        <div className="flex-1 max-w-xs">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
-            <input placeholder="Search rooms, students…" className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080] pointer-events-none" />
+            <input
+              placeholder="Search rooms, students…"
+              className="w-full pl-8 pr-3 py-1.5 bg-[#141714] border border-[#212521] rounded-lg text-sm text-[#f0f0f0] placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#2fa872] focus:border-[#2fa872] transition-colors"
+            />
           </div>
         </div>
         <div className="flex-1" />
-        <button onClick={() => setDark(!dark)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400">
-          {dark ? <Sun size={17} /> : <Moon size={17} />}
-        </button>
-        <div className="relative">
-          <button onClick={() => { setNotif(!notif); setUser(false); }} className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400">
-            <Bell size={17} />
-            {pendingBookings > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900" />
-            )}
+        {pendingBookings > 0 && (
+          <button
+            onClick={() => onNavigate("payments")}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f381f] border border-[#2fa872]/30 rounded-lg text-xs font-medium text-[#2fa872] hover:bg-[#2fa872]/20 transition-colors"
+          >
+            <Bell size={13} />
+            {pendingBookings} pending
           </button>
-        </div>
+        )}
         <div className="relative ml-1">
-          <button onClick={() => { setUser(!user); setNotif(false); }} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-            <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">DR</div>
-            <span className="text-xs font-semibold text-slate-850 dark:text-slate-200 hidden xl:block">Dormir</span>
-            <ChevronDown size={13} className="text-slate-400 dark:text-slate-500 hidden xl:block" />
+          <button onClick={() => setUser(!user)} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-[#1a1f1a] border border-transparent hover:border-[#212521] transition-all">
+            <div className="w-7 h-7 bg-[#2fa872] rounded-full flex items-center justify-center text-white text-[11px] font-bold">DR</div>
+            <span className="text-xs font-medium text-[#c8c8c8] hidden xl:block">My Account</span>
+            <ChevronDown size={12} className="text-[#808080] hidden xl:block" />
           </button>
           {user && <UserPanel dark={dark} setDark={setDark} onLogout={onLogout} onClose={() => setUser(false)} />}
         </div>
@@ -288,20 +285,16 @@ function UserPanel({ dark, setDark, onLogout, onClose }: {
   return (
     <>
       <div className="fixed inset-0 z-[90]" onClick={onClose} />
-      <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden z-[100] py-1">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Taban Riak</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Administrator</p>
+      <div className="absolute right-0 top-full mt-2 w-52 bg-[#121712] border border-[#272b27] rounded-xl shadow-2xl overflow-hidden z-[100] p-1">
+        <div className="px-3 py-3 border-b border-[#212521] mb-1">
+          <p className="text-sm font-semibold text-white">Taban Riak</p>
+          <p className="text-xs text-[#808080] mt-0.5">Administrator</p>
         </div>
-        <button onClick={() => setDark(!dark)} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-          {dark ? <Sun size={14} className="text-slate-400 dark:text-slate-500" /> : <Moon size={14} className="text-slate-400 dark:text-slate-500" />}
-          {dark ? "Light mode" : "Dark mode"}
+        <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#c8c8c8] hover:bg-[#1a1f1a] rounded-lg transition-colors">
+          <Settings size={14} className="text-[#808080]" />Settings
         </button>
-        <button className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-          <Settings size={14} className="text-slate-400 dark:text-slate-500" />Settings
-        </button>
-        <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
-          <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+        <div className="border-t border-[#212521] mt-1 pt-1">
+          <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
             <LogOut size={14} />Sign out
           </button>
         </div>
@@ -312,40 +305,77 @@ function UserPanel({ dark, setDark, onLogout, onClose }: {
 
 // ─── Desktop sidebar ──────────────────────────────────────────
 
+const NAV_SECTIONS = [
+  {
+    label: "Hostel",
+    items: ["dashboard", "units", "students", "bookings", "allocations"] as Page[],
+  },
+  {
+    label: "Finance",
+    items: ["payments", "reports"] as Page[],
+  },
+  {
+    label: "Operations",
+    items: ["maintenance", "settings"] as Page[],
+  },
+];
+
 function Sidebar({ active, setActive, collapsed, totalRooms }: {
   active: Page; setActive: (p: Page) => void; collapsed: boolean; totalRooms: number;
 }) {
   return (
-    <aside className={`hidden lg:flex fixed top-16 left-0 bottom-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex-col transition-all duration-200 z-40 ${collapsed ? "w-16" : "w-60"}`}>
-      <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(item => {
-          const on = active === item.id;
+    <aside className={`hidden lg:flex fixed top-14 left-0 bottom-0 bg-[#0e120e] border-r border-[#212521] flex-col transition-all duration-200 z-40 ${collapsed ? "w-14" : "w-56"}`}>
+      <nav className="flex-1 px-2 py-4 overflow-y-auto space-y-5">
+        {NAV_SECTIONS.map(section => {
+          const sectionItems = NAV_ITEMS.filter(n => section.items.includes(n.id));
           return (
-            <button
-              key={item.id}
-              onClick={() => setActive(item.id)}
-              title={collapsed ? item.label : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[40px] ${on ? "bg-accent dark:bg-accent/10 text-primary font-semibold" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"}`}
-            >
-              <item.Icon size={17} className={`flex-shrink-0 ${on ? "text-primary" : "text-slate-400 dark:text-slate-500"}`} />
+            <div key={section.label}>
               {!collapsed && (
-                <span className="flex-1 text-left">{item.label}</span>
+                <p className="px-2 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.6px] text-[rgba(148,163,184,0.5)]">
+                  {section.label}
+                </p>
               )}
-            </button>
+              <div className="space-y-0.5">
+                {sectionItems.map(item => {
+                  const on = active === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActive(item.id)}
+                      title={collapsed ? item.label : undefined}
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-sm transition-all min-h-[34px] ${
+                        on
+                          ? "bg-[#1f381f] text-[#f3f4f6] font-medium"
+                          : "text-[#808080] hover:bg-[#141714] hover:text-[#c8c8c8]"
+                      }`}
+                    >
+                      <item.Icon
+                        size={15}
+                        className={`flex-shrink-0 ${on ? "text-[#2fa872]" : "text-[#808080]"}`}
+                      />
+                      {!collapsed && (
+                        <span className="flex-1 text-left text-[13px]">{item.label}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>
       {!collapsed && (
-        <div className="px-3 py-4 border-t border-slate-100 dark:border-slate-800">
-          <div className="bg-accent/40 dark:bg-accent/5 rounded-lg p-3.5 border border-primary/10">
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="w-5 h-5 bg-primary rounded-md flex items-center justify-center">
-                <Star size={11} className="text-white" />
+        <div className="px-2 py-3 border-t border-[#212521]">
+          <div className="bg-[#121712] border border-[#272b27] rounded-[10px] p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-7 h-7 bg-[#2fa872] rounded-[8px] flex items-center justify-center flex-shrink-0">
+                <Building2 size={13} className="text-white" />
               </div>
-              <span className="text-xs font-bold text-primary">Plan</span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white truncate">My Account</p>
+                <p className="text-[10px] text-[#808080]">{totalRooms ?? "—"} rooms · Admin</p>
+              </div>
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Dormir Management</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{totalRooms ?? "—"} rooms managed</p>
           </div>
         </div>
       )}
@@ -360,26 +390,26 @@ function BottomNav({ active, setActive, onMore }: {
 }) {
   const isMore = MORE_NAV.some(n => n.id === active);
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 z-50">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0e120e]/95 backdrop-blur-xl border-t border-[#212521] z-50">
       <div className="flex items-stretch h-16 px-1">
         {BOTTOM_NAV.map(item => {
           const on = active === item.id;
           return (
             <button key={item.id} onClick={() => setActive(item.id)} className="flex-1 flex flex-col items-center justify-center gap-1 relative">
-              {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-primary rounded-full" />}
-              <div className={`p-1.5 rounded-lg ${on ? "bg-accent dark:bg-accent/15" : ""}`}>
-                <item.Icon size={22} className={on ? "text-primary" : "text-slate-400 dark:text-slate-500"} />
+              {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#2fa872] rounded-full" />}
+              <div className={`p-1.5 rounded-lg ${on ? "bg-[#1f381f]" : ""}`}>
+                <item.Icon size={20} className={on ? "text-[#2fa872]" : "text-[#808080]"} />
               </div>
-              <span className={`text-[10px] font-semibold leading-none ${on ? "text-primary" : "text-slate-400 dark:text-slate-500"}`}>{item.label}</span>
+              <span className={`text-[10px] font-semibold leading-none ${on ? "text-[#2fa872]" : "text-[#808080]"}`}>{item.label}</span>
             </button>
           );
         })}
         <button onClick={onMore} className="flex-1 flex flex-col items-center justify-center gap-1 relative">
-          {isMore && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-primary rounded-full" />}
-          <div className={`p-1.5 rounded-lg ${isMore ? "bg-accent dark:bg-accent/15" : ""}`}>
-            <LayoutGrid size={22} className={isMore ? "text-primary" : "text-slate-400 dark:text-slate-500"} />
+          {isMore && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#2fa872] rounded-full" />}
+          <div className={`p-1.5 rounded-lg ${isMore ? "bg-[#1f381f]" : ""}`}>
+            <LayoutGrid size={20} className={isMore ? "text-[#2fa872]" : "text-[#808080]"} />
           </div>
-          <span className={`text-[10px] font-semibold leading-none ${isMore ? "text-primary" : "text-slate-400 dark:text-slate-500"}`}>More</span>
+          <span className={`text-[10px] font-semibold leading-none ${isMore ? "text-[#2fa872]" : "text-[#808080]"}`}>More</span>
         </button>
       </div>
     </nav>
@@ -392,73 +422,38 @@ function MoreDrawer({ active, setActive, onClose, onLogout, dark, setDark }: {
   active: Page; setActive: (p: Page) => void; onClose: () => void;
   onLogout: () => void; dark: boolean; setDark: (v: boolean) => void;
 }) {
-  // Use MORE_NAV items for the grid  
-  const grid = MORE_NAV.map(item => {
-    let bg = "bg-slate-100";
-    let ic = "text-slate-600";
-    
-    if (item.id === "allocations") { bg = "bg-blue-100"; ic = "text-blue-600"; }
-    else if (item.id === "payments") { bg = "bg-accent/50 dark:bg-accent/10"; ic = "text-primary"; }
-    else if (item.id === "maintenance") { bg = "bg-amber-100"; ic = "text-amber-600"; }
-    else if (item.id === "reports") { bg = "bg-violet-100"; ic = "text-violet-600"; }
-    else if (item.id === "settings") { bg = "bg-slate-100 dark:bg-slate-800"; ic = "text-slate-600 dark:text-slate-400"; }
-    
-    return {
-      id: item.id,
-      label: item.label,
-      Icon: item.Icon,
-      bg,
-      ic,
-      badgeKey: item.badgeKey,
-    };
-  });
   return (
     <>
-      <div className="lg:hidden fixed inset-0 bg-black/40 z-[80]" onClick={onClose} />
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-3xl z-[90] shadow-2xl">
+      <div className="lg:hidden fixed inset-0 bg-black/60 z-[80]" onClick={onClose} />
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0e120e] border-t border-[#212521] rounded-t-2xl z-[90] shadow-2xl">
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-slate-200 dark:bg-slate-700 rounded-full" />
+          <div className="w-8 h-1 bg-[#212521] rounded-full" />
         </div>
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0">TR</div>
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#212521]">
+          <div className="w-10 h-10 bg-[#2fa872] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">TR</div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Taban Riak</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 truncate">Kasalita Inn · Admin</p>
+            <p className="text-sm font-semibold text-white">Taban Riak</p>
+            <p className="text-xs text-[#808080] truncate">Dormir · Admin</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
-            <X size={16} />
+          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-[#1a1f1a] flex items-center justify-center text-[#808080]">
+            <X size={15} />
           </button>
         </div>
-        <div className="grid grid-cols-4 gap-3 px-5 py-5">
-          {grid.map(item => {
+        <div className="grid grid-cols-4 gap-2 px-4 py-4">
+          {MORE_NAV.map(item => {
             const on = active === item.id;
             return (
-              <button key={item.id} onClick={() => { setActive(item.id); onClose(); }} className={`flex flex-col items-center gap-2 py-3.5 rounded-lg transition-all active:scale-95 relative ${on ? "bg-accent/40 dark:bg-accent/10 ring-1 ring-primary/10" : "bg-slate-50 dark:bg-slate-800"}`}>
-                <div className={`w-10 h-10 ${on ? "bg-accent" : item.bg} rounded-lg flex items-center justify-center`}>
-                  <item.Icon size={18} className={on ? "text-primary" : item.ic} />
-                </div>
-                <span className={`text-[11px] font-semibold ${on ? "text-primary" : "text-slate-600 dark:text-slate-400"}`}>{item.label}</span>
+              <button key={item.id} onClick={() => { setActive(item.id); onClose(); }} className={`flex flex-col items-center gap-2 py-3 rounded-xl transition-all active:scale-95 ${on ? "bg-[#1f381f]" : "bg-[#141714]"}`}>
+                <item.Icon size={18} className={on ? "text-[#2fa872]" : "text-[#808080]"} />
+                <span className={`text-[11px] font-medium ${on ? "text-[#2fa872]" : "text-[#808080]"}`}>{item.label}</span>
               </button>
             );
           })}
         </div>
-        <div className="px-5 pb-6 space-y-2">
-          <button onClick={() => setDark(!dark)} className="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 dark:bg-slate-800 rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center">
-                {dark ? <Sun size={15} className="text-slate-600 dark:text-slate-400" /> : <Moon size={15} className="text-slate-600 dark:text-slate-400" />}
-              </div>
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{dark ? "Light mode" : "Dark mode"}</span>
-            </div>
-            <div className={`w-11 h-6 rounded-full relative transition-colors ${dark ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"}`}>
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${dark ? "translate-x-5" : "translate-x-1"}`} />
-            </div>
-          </button>
-          <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3.5 bg-red-50 rounded-2xl">
-            <div className="w-8 h-8 bg-red-100 rounded-xl flex items-center justify-center">
-              <LogOut size={15} className="text-red-600" />
-            </div>
-            <span className="text-sm font-semibold text-red-600">Sign out</span>
+        <div className="px-4 pb-8">
+          <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+            <LogOut size={15} className="text-red-400" />
+            <span className="text-sm font-medium text-red-400">Sign out</span>
           </button>
         </div>
       </div>
@@ -1117,53 +1112,80 @@ function SettingsPage() {
 // ─── Auth ─────────────────────────────────────────────────────
 
 function AuthPage({ onLogin }: { onLogin: () => void }) {
-  const [mode, setMode]   = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [pass,  setPass]  = useState("");
-  const [name,  setName]  = useState("");
-  const [co,    setCo]    = useState("");
-  const field = "w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary min-h-[44px]";
+  const field = "w-full px-4 py-2.5 bg-[#141714] border border-[#212521] rounded-lg text-sm text-[#f0f0f0] placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#2fa872] focus:border-[#2fa872] transition-colors min-h-[42px]";
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white dark:bg-slate-950">
-      <div className="hidden lg:flex w-[480px] flex-shrink-0 bg-gradient-to-br from-indigo-600 via-violet-750 to-purple-900 flex-col justify-between p-12 relative overflow-hidden">
-        {[160,280,400,520].map(s=><div key={s} className="absolute rounded-full border border-white/10 pointer-events-none" style={{width:s,height:s,top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}/>)}
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#060d08]">
+      {/* Left panel */}
+      <div className="hidden lg:flex w-[420px] flex-shrink-0 bg-[#0e120e] border-r border-[#212521] flex-col justify-between p-10 relative overflow-hidden">
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage: "linear-gradient(#2fa872 1px, transparent 1px), linear-gradient(90deg, #2fa872 1px, transparent 1px)", backgroundSize: "32px 32px"}} />
         <div className="relative flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center"><Building2 size={16} className="text-white"/></div>
-          <span className="text-white font-bold text-lg">Dormir Manager</span>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="8" width="9" height="14" rx="2" fill="#2fa872"/>
+            <rect x="13" y="2" width="9" height="20" rx="2" fill="#2fa872" opacity="0.45"/>
+          </svg>
+          <span className="text-white font-bold text-base tracking-tight">Dormir</span>
         </div>
         <div className="relative space-y-8">
-          <div><h2 className="text-4xl font-bold text-white leading-tight">Property management made effortless.</h2><p className="text-indigo-100/80 mt-3 text-base leading-relaxed">The modern platform for landlords who want full control.</p></div>
-          <div className="space-y-3">{["Manage all units from one dashboard","Automate rent collection","Track maintenance in real-time","Generate reports instantly"].map(item=><div key={item} className="flex items-center gap-3"><div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0"><Check size={11} className="text-white"/></div><span className="text-sm text-white/80">{item}</span></div>)}</div>
-          <div className="bg-white/10 rounded-lg p-5 border border-white/20"><div className="flex items-start gap-3 mb-3"><div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">TR</div><div><p className="text-white text-sm font-semibold">Taban Riak</p><p className="text-white/60 text-xs">Kasalita Inn</p></div></div><p className="text-white/80 text-sm leading-relaxed">"Dormir Manager transformed how we handle our portfolio."</p></div>
+          <div>
+            <h2 className="text-3xl font-bold text-white leading-tight">Hostel management, simplified.</h2>
+            <p className="text-[#808080] mt-3 text-sm leading-relaxed">Beds, bookings, payments and maintenance — all in one place.</p>
+          </div>
+          <div className="space-y-2.5">
+            {["Multi-room occupancy tracking", "Booking & allocation management", "Fee collection and payment logs", "Maintenance request pipeline"].map(item => (
+              <div key={item} className="flex items-center gap-2.5">
+                <div className="w-4 h-4 bg-[#1f381f] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Check size={9} className="text-[#2fa872]" />
+                </div>
+                <span className="text-sm text-[#c8c8c8]">{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="relative flex items-center gap-8">{[["120+","Properties"],["4,800+","Units"],["99.9%","Uptime"]].map(([v,l])=><div key={l}><p className="text-2xl font-bold text-white">{v}</p><p className="text-xs text-white/60 mt-0.5">{l}</p></div>)}</div>
-      </div>
-      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 bg-slate-50 dark:bg-slate-950 min-h-screen lg:min-h-0">
-        <div className="lg:hidden flex items-center gap-2 mb-8 self-start">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><Building2 size={14} className="text-white"/></div>
-          <span className="font-bold text-slate-900 dark:text-slate-100">Dormir Manager</span>
-        </div>
-        <div className="w-full max-w-[400px]">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{mode==="login"?"Welcome back":"Create account"}</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 mb-7">{mode==="login"?"Sign in to your dashboard":"Start your 14-day free trial"}</p>
-          <div className="space-y-3">
-            {mode==="register"&&<>
-              <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Taban Riak" className={field}/></div>
-              <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Company Name</label><input value={co} onChange={e=>setCo(e.target.value)} placeholder="Kasalita Inn" className={field}/></div>
-            </>}
-            <div><label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email address</label><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" type="email" className={field}/></div>
+        <div className="relative bg-[#141714] border border-[#212521] rounded-xl p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 bg-[#2fa872] rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">TR</div>
             <div>
-              <div className="flex items-center justify-between mb-1.5"><label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>{mode==="login"&&<button className="text-xs text-primary font-semibold">Forgot password?</button>}</div>
-              <input value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" type="password" className={field}/>
+              <p className="text-white text-sm font-semibold">Taban Riak</p>
+              <p className="text-[#808080] text-xs">Administrator</p>
             </div>
-            <button onClick={onLogin} className="w-full bg-primary hover:bg-primary/95 text-white font-semibold py-3 rounded-lg text-sm mt-1 min-h-[48px] shadow-sm active:scale-[0.98] transition-all">
-              {mode==="login"?"Sign In":"Start Free Trial"}
+          </div>
+          <p className="text-[#a0a8a0] text-xs leading-relaxed">"Everything I need to run the hostel — from one dashboard."</p>
+        </div>
+      </div>
+      {/* Right — login form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 min-h-screen lg:min-h-0">
+        <div className="lg:hidden flex items-center gap-2 mb-8 self-start">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="8" width="9" height="14" rx="2" fill="#2fa872"/>
+            <rect x="13" y="2" width="9" height="20" rx="2" fill="#2fa872" opacity="0.45"/>
+          </svg>
+          <span className="font-bold text-white">Dormir</span>
+        </div>
+        <div className="w-full max-w-[360px]">
+          <h1 className="text-2xl font-bold text-white">Welcome back</h1>
+          <p className="text-sm text-[#808080] mt-1.5 mb-7">Sign in to your dashboard</p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-[#a0a8a0] mb-1.5">Email address</label>
+              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@hostel.com" type="email" className={field} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-[#a0a8a0]">Password</label>
+                <button className="text-xs text-[#2fa872] font-medium hover:underline">Forgot password?</button>
+              </div>
+              <input value={pass} onChange={e => setPass(e.target.value)} placeholder="••••••••" type="password" className={field} />
+            </div>
+            <button onClick={onLogin} className="w-full bg-[#2fa872] hover:bg-[#27936400] text-white font-semibold py-2.5 rounded-lg text-sm mt-1 min-h-[42px] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(47,168,114,0.2)]">
+              Sign In
             </button>
           </div>
-          <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-5">
-            {mode==="login"?"No account? ":"Have one? "}<button onClick={()=>setMode(mode==="login"?"register":"login")} className="text-primary font-semibold hover:underline">{mode==="login"?"Start free trial":"Sign in"}</button>
-          </p>
-          {mode==="login"&&<button onClick={onLogin} className="w-full mt-3 py-3 border-2 border-dashed border-primary/30 text-primary text-xs font-semibold rounded-lg hover:bg-primary/5 dark:bg-primary/10 dark:hover:bg-primary/20 transition-all">⚡ Demo — Enter dashboard</button>}
+          <button onClick={onLogin} className="w-full mt-3 py-2.5 border border-dashed border-[#2fa872]/30 text-[#2fa872] text-xs font-medium rounded-lg hover:bg-[#1f381f]/50 transition-all">
+            ⚡ Skip — Enter dashboard
+          </button>
         </div>
       </div>
     </div>
@@ -1209,11 +1231,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.style.fontFamily = "Soehne, 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif";
-    document.documentElement.style.fontSize = "18px";
-    if (dark) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-  }, [dark]);
+    // Dormir uses a permanent dark theme
+    document.documentElement.classList.add("dark");
+  }, []);
 
   useEffect(() => {
     if (!loggedIn) return;
@@ -1247,7 +1267,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-[#060d08]">
       <TopBar
         activePage={page}
         collapsed={collapsed}
@@ -1262,7 +1282,7 @@ export default function App() {
       <Sidebar active={page} setActive={setPage} collapsed={collapsed} totalRooms={totalRooms} />
       <BottomNav active={page} setActive={p => { setPage(p); setMoreOpen(false); }} onMore={() => setMoreOpen(true)} />
       {moreOpen && <MoreDrawer active={page} setActive={setPage} onClose={() => setMoreOpen(false)} onLogout={() => setLoggedIn(false)} dark={dark} setDark={setDark} />}
-      <main className={`pt-14 pb-20 lg:pt-16 lg:pb-0 transition-all duration-200 ${collapsed ? "lg:ml-16" : "lg:ml-60"}`}>
+      <main className={`pt-14 pb-20 lg:pt-14 lg:pb-0 transition-all duration-200 ${collapsed ? "lg:ml-14" : "lg:ml-56"}`}>
         <div className="px-4 py-5 lg:px-6 lg:py-6 max-w-[1300px] mx-auto">
           {renderPage()}
         </div>

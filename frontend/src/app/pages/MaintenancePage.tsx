@@ -1,631 +1,217 @@
 /**
- * MaintenancePage — wired to FastAPI backend
- *
- * Drop this file into src/app/pages/MaintenancePage.tsx and import it in App.tsx:
- *   import MaintenancePage from "./pages/MaintenancePage";
- *
- * Set VITE_API_URL in your .env:
- *   VITE_API_URL=http://localhost:8000
- *
- * The component manages maintenance request CRUD operations via REST API.
- * All existing UI (mobile cards, desktop table, add/edit/delete modals) is preserved.
+ * MaintenancePage — maintenance requests table
+ * Dashboard Flaws principles: status pills, priority dots, monospace IDs, hairline grid
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  Search, Plus, Edit, Trash2, X, Check, Loader2, AlertCircle,
-} from "lucide-react";
-
+import { Search, Plus, Edit, Trash2, X, Check, Loader2, AlertCircle, Wrench, Hash } from "lucide-react";
 import { apiFetch } from "../lib/api";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
 interface MaintenanceRequest {
-  id: number;
-  unit_id: number;
-  tenant_id: number;
+  id: number; unit_id: number; tenant_id: number;
   category: "Plumbing" | "Electrical" | "HVAC" | "Appliance" | "Other";
   priority: "Low" | "Medium" | "High" | "Emergency";
   status: "Open" | "In Progress" | "Resolved";
-  description: string;
-  submitted_date: string;
-  resolved_date: string | null;
-  assigned_to: string | null;
+  description: string; submitted_date: string;
+  resolved_date: string | null; assigned_to: string | null;
 }
+interface FormData { unit_id: string; tenant_id: string; category: string; priority: string; status: string; description: string; assigned_to: string; }
+const EMPTY: FormData = { unit_id: "", tenant_id: "", category: "Plumbing", priority: "Medium", status: "Open", description: "", assigned_to: "" };
 
-interface MaintenanceRequestFormData {
-  unit_id: string;
-  tenant_id: string;
-  category: string;
-  priority: string;
-  status: string;
-  description: string;
-  assigned_to: string;
-}
-
-const EMPTY_FORM: MaintenanceRequestFormData = {
-  unit_id: "",
-  tenant_id: "",
-  category: "Plumbing",
-  priority: "Medium",
-  status: "Open",
-  description: "",
-  assigned_to: "",
+const PRIORITY_DOT: Record<string, string> = { Low: "bg-[#808080]", Medium: "bg-[#3280fa]", High: "bg-amber-500", Emergency: "bg-red-500" };
+const STATUS_PILL: Record<string, { bg: string; text: string; dot: string }> = {
+  "Open":        { bg: "bg-[rgba(245,158,11,0.1)]",  text: "text-amber-400",   dot: "bg-amber-500"  },
+  "In Progress": { bg: "bg-[rgba(47,168,114,0.1)]",  text: "text-[#2fa872]",  dot: "bg-[#2fa872]"  },
+  "Resolved":    { bg: "bg-[rgba(148,163,184,0.1)]", text: "text-[#808080]",  dot: "bg-[#808080]"  },
 };
 
-// ── Status Badge Colors ───────────────────────────────────────────────────────
-
-const STATUS_STYLES: Record<string, string> = {
-  Open: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/30",
-  "In Progress": "bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary border border-primary/20 dark:border-primary/30",
-  Resolved: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30",
-};
-
-const PRIORITY_STYLES: Record<string, string> = {
-  Low: "bg-muted dark:bg-muted text-muted-foreground border border-border",
-  Medium: "bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary border border-primary/20 dark:border-primary/30",
-  High: "bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border border-orange-200/50 dark:border-orange-800/30",
-  Emergency: "bg-destructive/5 dark:bg-destructive/10 text-destructive dark:text-destructive border border-destructive/20 dark:border-destructive/30",
-};
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap ${STATUS_STYLES[status] ?? "bg-muted text-muted-foreground border border-border"}`}>
-      {status}
-    </span>
-  );
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap ${PRIORITY_STYLES[priority] ?? "bg-muted text-muted-foreground border border-border"}`}>
-      {priority}
-    </span>
-  );
-}
-
-function Pill({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-      <p className="text-xs font-semibold text-foreground">{value}</p>
-    </div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
+const INPUT = "w-full px-3 py-2 bg-[#0e120e] border border-[#272b27] rounded-lg text-[13px] text-[#f0f0f0] placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#2fa872] focus:border-[#2fa872] transition-colors";
+const LABEL = "block text-[11px] font-semibold text-[#808080] uppercase tracking-wide mb-1";
 
 export default function MaintenancePage() {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
+  const [saving, setSaving]     = useState(false);
+  const [search, setSearch]     = useState("");
+  const [filter, setFilter]     = useState("All");
+  const [addOpen, setAddOpen]   = useState(false);
+  const [editReq, setEditReq]   = useState<MaintenanceRequest | null>(null);
+  const [delReq, setDelReq]     = useState<MaintenanceRequest | null>(null);
+  const [form, setForm]         = useState<FormData>(EMPTY);
 
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-
-  // modals
-  const [addOpen, setAddOpen] = useState(false);
-  const [editRequest, setEditRequest] = useState<MaintenanceRequest | null>(null);
-  const [delRequest, setDelRequest] = useState<MaintenanceRequest | null>(null);
-
-  const [form, setForm] = useState<MaintenanceRequestFormData>(EMPTY_FORM);
-
-  // Reset form when opening add modal
-  useEffect(() => {
-    if (addOpen) {
-      setForm(EMPTY_FORM);
-    }
-  }, [addOpen]);
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  useEffect(() => { if (addOpen) setForm(EMPTY); }, [addOpen]);
 
   const fetchRequests = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiFetch<MaintenanceRequest[]>("/maintenance/");
-      setRequests(data);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load maintenance requests");
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { setRequests(await apiFetch<MaintenanceRequest[]>("/maintenance/")); }
+    catch (e: any) { setError(e.message ?? "Failed to load requests"); }
+    finally { setLoading(false); }
   }, []);
-
   useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
-  // ── CRUD handlers ──────────────────────────────────────────────────────────
-
   const handleCreate = async () => {
-    if (!form.unit_id || !form.tenant_id || !form.category || !form.priority || !form.description) return;
+    if (!form.unit_id || !form.tenant_id || !form.description) return;
     setSaving(true);
     try {
-      const created = await apiFetch<MaintenanceRequest>("/maintenance/", {
-        method: "POST",
-        body: JSON.stringify({
-          unit_id: Number(form.unit_id),
-          tenant_id: Number(form.tenant_id),
-          category: form.category,
-          priority: form.priority,
-          description: form.description,
-          assigned_to: form.assigned_to || null,
-        }),
-      });
-      setRequests((prev) => [...prev, created]);
-      setAddOpen(false);
-      setForm(EMPTY_FORM);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to create request");
-    } finally {
-      setSaving(false);
-    }
+      const r = await apiFetch<MaintenanceRequest>("/maintenance/", { method: "POST", body: JSON.stringify({ unit_id: Number(form.unit_id), tenant_id: Number(form.tenant_id), category: form.category, priority: form.priority, description: form.description, assigned_to: form.assigned_to || null }) });
+      setRequests(prev => [...prev, r]); setAddOpen(false); setForm(EMPTY);
+    } catch (e: any) { setError(e.message ?? "Failed to create"); }
+    finally { setSaving(false); }
   };
 
-  const handleUpdate = async (id: number, data: Partial<MaintenanceRequestFormData>) => {
+  const handleUpdate = async (id: number) => {
     setSaving(true);
     try {
-      const updated = await apiFetch<MaintenanceRequest>(`/maintenance/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          unit_id: data.unit_id !== undefined ? Number(data.unit_id) : undefined,
-          tenant_id: data.tenant_id !== undefined ? Number(data.tenant_id) : undefined,
-          category: data.category,
-          priority: data.priority,
-          status: data.status,
-          description: data.description,
-          assigned_to: data.assigned_to || null,
-        }),
-      });
-      setRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
-      setEditRequest(null);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to update request");
-    } finally {
-      setSaving(false);
-    }
+      const r = await apiFetch<MaintenanceRequest>(`/maintenance/${id}`, { method: "PATCH", body: JSON.stringify({ unit_id: form.unit_id ? Number(form.unit_id) : undefined, tenant_id: form.tenant_id ? Number(form.tenant_id) : undefined, category: form.category || undefined, priority: form.priority || undefined, status: form.status || undefined, description: form.description || undefined, assigned_to: form.assigned_to || null }) });
+      setRequests(prev => prev.map(x => x.id === id ? r : x)); setEditReq(null);
+    } catch (e: any) { setError(e.message ?? "Failed to update"); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
     setSaving(true);
-    try {
-      await apiFetch(`/maintenance/${id}`, { method: "DELETE" });
-      setRequests((prev) => prev.filter((r) => r.id !== id));
-      setDelRequest(null);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to delete request");
-    } finally {
-      setSaving(false);
-    }
+    try { await apiFetch(`/maintenance/${id}`, { method: "DELETE" }); setRequests(prev => prev.filter(r => r.id !== id)); setDelReq(null); }
+    catch (e: any) { setError(e.message ?? "Failed to delete"); }
+    finally { setSaving(false); }
   };
 
-  // ── Filter ─────────────────────────────────────────────────────────────────
-
-  const rows = requests.filter((r) => {
+  const rows = requests.filter(r => {
     const q = search.toLowerCase();
-    const matchSearch = search === "" || 
-      r.unit_id.toString().includes(search) || 
-      r.tenant_id.toString().includes(search) ||
-      r.description.toLowerCase().includes(q) ||
-      r.category.toLowerCase().includes(q);
-    const matchFilter = filter === "All" || r.status === filter;
-    return matchSearch && matchFilter;
+    return (search === "" || r.unit_id.toString().includes(search) || r.description.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)) && (filter === "All" || r.status === filter);
   });
 
-  // ── Shared input style ─────────────────────────────────────────────────────
-
-  const inputCls = "w-full px-3.5 py-2.5 bg-input-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow";
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  if (loading) return <div className="flex flex-col items-center justify-center py-24 gap-3"><Loader2 size={24} className="text-[#2fa872] animate-spin" /><p className="text-xs text-[#808080]">Loading requests…</p></div>;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Maintenance Requests</h1>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg px-4 py-2.5 text-sm shadow-sm active:scale-[0.98] transition-all"
-        >
-          <Plus size={16} />
-          Add Request
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-semibold text-[#808080] uppercase tracking-[0.6px] mb-1">Operations</p>
+          <h1 className="text-[22px] font-semibold text-[#f0f0f0] tracking-[-0.22px]">Maintenance</h1>
+          <p className="text-[13px] text-[#808080] mt-0.5">Requests and repairs tracking</p>
+        </div>
+        <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 bg-[#f0f0f0] hover:bg-white text-[#0e120e] px-3 py-1.5 rounded-[6px] font-medium text-[11px] transition-colors">
+          Add <Plus size={13} />
         </button>
       </div>
 
-      {/* Error banner */}
-      {error && (
-        <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-destructive/5 border border-destructive/20 rounded-lg text-destructive text-sm">
-          <AlertCircle size={16} className="flex-shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="flex-shrink-0 hover:opacity-70 transition-opacity">
-            <X size={16} />
-          </button>
-        </div>
-      )}
+      {/* Error */}
+      {error && <div className="flex items-center gap-2 px-4 py-3 bg-[rgba(220,38,38,0.08)] border border-[rgba(220,38,38,0.2)] rounded-lg text-red-400 text-[12px]"><AlertCircle size={14} className="flex-shrink-0" /><span className="flex-1">{error}</span><button onClick={() => setError(null)}><X size={13} /></button></div>}
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by unit, tenant, category, or description…"
-          className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-shadow"
-        />
-      </div>
-
-      {/* Status filters */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-        {["All", "Open", "In Progress", "Resolved"].map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-              filter === s 
-                ? "bg-primary text-primary-foreground shadow-sm" 
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            {s}
-            {s !== "All" && (
-              <span className="ml-2 opacity-80">
-                {requests.filter((r) => r.status === s).length}
-              </span>
-            )}
-          </button>
+      {/* Stats chips */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {[
+          { label: "Open",        value: requests.filter(r => r.status === "Open").length },
+          { label: "In Progress", value: requests.filter(r => r.status === "In Progress").length },
+          { label: "Resolved",    value: requests.filter(r => r.status === "Resolved").length },
+        ].map(({ label, value }) => (
+          <div key={label} className="flex items-center gap-2.5 bg-[#141714] border border-[#212521] rounded-[10px] px-4 py-2.5">
+            <span className="font-['Courier_Prime',monospace] text-[18px] text-[#f0f0f0]">{value}</span>
+            <span className="text-[11px] text-[#808080] font-medium">{label}</span>
+          </div>
         ))}
       </div>
 
-      {/* Loading skeleton */}
-      {loading && (
-        <div data-testid="loading-skeleton" className="space-y-4 lg:hidden">
-          {[1,2,3].map((i) => (
-            <div key={i} className="bg-card border border-border rounded-lg p-4 animate-pulse">
-              <div className="flex justify-between mb-3">
-                <div className="h-5 bg-muted rounded w-20" />
-                <div className="h-6 bg-muted rounded w-24" />
-              </div>
-              <div className="h-4 bg-muted rounded w-full mb-2" />
-              <div className="h-4 bg-muted rounded w-2/3 mb-4" />
-              <div className="grid grid-cols-3 gap-3">
-                {[1,2,3].map((j) => <div key={j} className="h-10 bg-muted rounded" />)}
-              </div>
+      {/* Filter + search */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center bg-[#141714] border border-[#212521] rounded-[8px] p-0.5">
+          {["All", "Open", "In Progress", "Resolved"].map(s => (
+            <button key={s} onClick={() => setFilter(s)} className={`px-3 py-1.5 rounded-[6px] text-[11px] font-semibold transition-all ${filter === s ? "bg-[#2fa872] text-white" : "text-[#808080] hover:text-[#f0f0f0]"}`}>{s}</button>
+          ))}
+        </div>
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080] pointer-events-none" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Unit, category, description…" className="w-full pl-9 pr-3 py-2 bg-[#141714] border border-[#212521] rounded-lg text-[13px] text-[#f0f0f0] placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#2fa872] transition-colors" />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-[#141714] border border-[#212521] rounded-t-[12px] overflow-hidden">
+        <div className="grid grid-cols-[60px_60px_1fr_100px_100px_100px_120px_80px] border-b border-[#212521] bg-[#111511]">
+          {["ID","Unit","Description","Category","Priority","Status","Assigned",""].map((col, i) => (
+            <div key={i} className={`flex items-center gap-1.5 px-3 py-2.5 ${i > 0 ? "border-l border-[#212521]" : ""}`}>
+              {col === "ID" && <Hash size={12} className="text-[#808080]" />}
+              {col === "Description" && <Wrench size={12} className="text-[#808080]" />}
+              {col && <span className="text-[11px] font-semibold text-[#f0f0f0]">{col}</span>}
             </div>
           ))}
         </div>
-      )}
 
-      {/* Mobile cards */}
-      {!loading && (
-        <div className="lg:hidden space-y-3">
-          {rows.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <div className="w-12 h-12 bg-muted rounded-lg mx-auto mb-3 flex items-center justify-center">
-                <AlertCircle size={24} className="text-muted-foreground" />
-              </div>
-              <p className="text-sm font-medium text-foreground mb-1">No requests found</p>
-              <p className="text-xs text-muted-foreground">Try adjusting your search or filters</p>
-            </div>
-          ) : rows.map((r) => (
-            <div key={r.id} className="bg-card border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold text-foreground font-mono">#{r.id}</span>
-                  <span className="text-xs text-muted-foreground">Unit {r.unit_id}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={r.status} />
-                  <button 
-                    onClick={() => setEditRequest(r)} 
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button 
-                    onClick={() => setDelRequest(r)} 
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+        {rows.length === 0 ? (
+          <div className="px-4 py-12 text-center text-[13px] text-[#808080]">No requests match your filters</div>
+        ) : rows.map((r, idx) => {
+          const pill = STATUS_PILL[r.status] ?? STATUS_PILL["Open"];
+          return (
+            <div key={r.id} className={`grid grid-cols-[60px_60px_1fr_100px_100px_100px_120px_80px] border-t border-[#1a1f1a] hover:bg-[#1a1f1a] transition-colors group ${idx % 2 === 1 ? "bg-[rgba(255,255,255,0.012)]" : ""}`}>
+              <div className="flex items-center px-3 py-2.5"><span className="font-['Courier_Prime',monospace] text-[12px] text-[#808080]">{r.id}</span></div>
+              <div className="flex items-center px-3 py-2.5 border-l border-[#1e231e]"><span className="font-['Courier_Prime',monospace] text-[12px] text-[#f0f0f0]">{r.unit_id}</span></div>
+              <div className="flex items-center px-3 py-2.5 border-l border-[#1e231e] min-w-0"><p className="text-[12px] text-[#c8c8c8] truncate">{r.description}</p></div>
+              <div className="flex items-center px-3 py-2.5 border-l border-[#1e231e]"><span className="text-[11px] text-[#808080]">{r.category}</span></div>
+              <div className="flex items-center px-3 py-2.5 border-l border-[#1e231e]">
+                <div className="inline-flex items-center gap-1 border border-[#272b27] rounded-[14px] px-2 py-0.5">
+                  <span className={`w-[5px] h-[5px] rounded-[1px] flex-shrink-0 ${PRIORITY_DOT[r.priority] ?? "bg-[#808080]"}`} />
+                  <span className="text-[10px] font-semibold text-[#f0f0f0]">{r.priority}</span>
                 </div>
               </div>
-              <div className="mb-4">
-                <p className="text-sm text-muted-foreground line-clamp-2">{r.description}</p>
-              </div>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <Pill label="Category" value={r.category} />
-                <Pill label="Priority" value={r.priority} />
-                <Pill label="Tenant" value={`T${r.tenant_id}`} />
-              </div>
-              <div className="pt-3 border-t border-border flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {r.assigned_to ? `Assigned to ${r.assigned_to}` : "Unassigned"}
-                </span>
-                <PriorityBadge priority={r.priority} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Desktop table */}
-      {!loading && (
-        <div className="hidden lg:block bg-card border border-border rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                {["ID", "Unit", "Tenant", "Category", "Priority", "Status", "Description", "Assigned To", ""].map((c, i) => (
-                  <th key={i} className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">{c}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="text-center py-16 px-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-12 h-12 bg-muted rounded-lg mb-3 flex items-center justify-center">
-                        <AlertCircle size={24} className="text-muted-foreground" />
-                      </div>
-                      <p className="text-sm font-medium text-foreground mb-1">No requests found</p>
-                      <p className="text-xs text-muted-foreground">Try adjusting your search or filters</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : rows.map((r) => (
-                <tr key={r.id} className="hover:bg-muted/30 transition-colors group">
-                  <td className="px-4 py-3.5 font-semibold text-foreground font-mono text-sm">{r.id}</td>
-                  <td className="px-4 py-3.5 text-sm text-muted-foreground">{r.unit_id}</td>
-                  <td className="px-4 py-3.5 text-sm text-muted-foreground">T{r.tenant_id}</td>
-                  <td className="px-4 py-3.5 text-sm text-muted-foreground">{r.category}</td>
-                  <td className="px-4 py-3.5"><PriorityBadge priority={r.priority} /></td>
-                  <td className="px-4 py-3.5"><StatusBadge status={r.status} /></td>
-                  <td className="px-4 py-3.5 text-sm text-muted-foreground max-w-xs truncate">{r.description}</td>
-                  <td className="px-4 py-3.5 text-sm text-muted-foreground">{r.assigned_to || "—"}</td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => setEditRequest(r)} 
-                        className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button 
-                        onClick={() => setDelRequest(r)} 
-                        className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {/* Table footer: counts */}
-          {rows.length > 0 && (
-            <div className="px-4 py-3 border-t border-border flex items-center justify-between bg-muted/20">
-              <span className="text-xs text-muted-foreground">
-                Showing {rows.length} of {requests.length} requests
-              </span>
-              <div className="flex items-center gap-4 text-xs">
-                <span className="text-muted-foreground">
-                  <span className="font-semibold text-amber-600 dark:text-amber-500">{requests.filter(r => r.status === "Open").length}</span> open
-                </span>
-                <span className="text-muted-foreground">
-                  <span className="font-semibold text-primary">{requests.filter(r => r.status === "In Progress").length}</span> in progress
-                </span>
-                <span className="text-muted-foreground">
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-500">{requests.filter(r => r.status === "Resolved").length}</span> resolved
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-
-      {/* ── Add Request Modal ──────────────────────────────────────────────────── */}
-      {addOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100]">
-          <div className="bg-card border border-border w-full sm:max-w-lg sm:rounded-xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-center pt-3 sm:hidden">
-              <div className="w-10 h-1 bg-border rounded-full" />
-            </div>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Add New Request</h2>
-              <button 
-                onClick={() => { setAddOpen(false); setForm(EMPTY_FORM); }} 
-                className="w-8 h-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="px-6 py-5 grid grid-cols-2 gap-4">
-              {([
-                { label: "Unit ID", key: "unit_id", type: "number", ph: "e.g. 101" },
-                { label: "Tenant ID", key: "tenant_id", type: "number", ph: "e.g. 1" },
-              ] as const).map((f) => (
-                <div key={f.key}>
-                  <label className="block text-sm font-medium text-foreground mb-2">{f.label}</label>
-                  <input
-                    type={f.type}
-                    value={form[f.key]}
-                    onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                    placeholder={f.ph}
-                    className={inputCls}
-                  />
+              <div className="flex items-center px-3 py-2.5 border-l border-[#1e231e]">
+                <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${pill.bg}`}>
+                  <span className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${pill.dot}`} />
+                  <span className={`text-[11px] font-semibold ${pill.text}`}>{r.status}</span>
                 </div>
-              ))}
-              {([
-                { label: "Category", key: "category", opts: [["Plumbing","Plumbing"],["Electrical","Electrical"],["HVAC","HVAC"],["Appliance","Appliance"],["Other","Other"]] },
-                { label: "Priority", key: "priority", opts: [["Low","Low"],["Medium","Medium"],["High","High"],["Emergency","Emergency"]] },
-              ] as const).map((f) => (
-                <div key={f.key}>
-                  <label className="block text-sm font-medium text-foreground mb-2">{f.label}</label>
-                  <select value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} className={inputCls}>
-                    {f.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                  </select>
-                </div>
-              ))}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-2">Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Describe the maintenance issue…"
-                  rows={3}
-                  className={inputCls}
-                />
               </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-2">Assigned To (Optional)</label>
-                <input
-                  type="text"
-                  value={form.assigned_to}
-                  onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}
-                  placeholder="Technician name"
-                  className={inputCls}
-                />
+              <div className="flex items-center px-3 py-2.5 border-l border-[#1e231e]"><span className="text-[11px] text-[#808080] truncate">{r.assigned_to ?? "—"}</span></div>
+              <div className="flex items-center justify-center gap-1 px-2 py-2.5 border-l border-[#1e231e] opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => { setForm({ unit_id: String(r.unit_id), tenant_id: String(r.tenant_id), category: r.category, priority: r.priority, status: r.status, description: r.description, assigned_to: r.assigned_to ?? "" }); setEditReq(r); }} className="p-1.5 hover:bg-[#1f381f] rounded transition-colors"><Edit size={12} className="text-[#808080] hover:text-[#2fa872]" /></button>
+                <button onClick={() => setDelReq(r)} className="p-1.5 hover:bg-[rgba(220,38,38,0.1)] rounded transition-colors"><Trash2 size={12} className="text-[#808080] hover:text-red-400" /></button>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-border flex gap-3 bg-muted/30">
-              <button 
-                onClick={() => { setAddOpen(false); setForm(EMPTY_FORM); }} 
-                className="flex-1 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={saving || !form.unit_id || !form.tenant_id || !form.description}
-                className="flex-1 py-2.5 bg-primary rounded-lg text-sm font-medium text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                Save Request
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-[#808080] px-1">{rows.length} of {requests.length} requests</p>
+
+      {/* Add / Edit modal */}
+      {(addOpen || editReq) && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-[#0e120e] border border-[#272b27] rounded-[12px] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-[#0e120e] border-b border-[#212521] px-5 py-4 flex items-center justify-between z-10">
+              <h2 className="text-[14px] font-semibold text-[#f0f0f0]">{editReq ? `Edit Request #${editReq.id}` : "Add Maintenance Request"}</h2>
+              <button onClick={() => { setAddOpen(false); setEditReq(null); }} className="p-1.5 hover:bg-[#1a1f1a] rounded-lg"><X size={14} className="text-[#808080]" /></button>
+            </div>
+            <div className="p-5 grid grid-cols-2 gap-3.5">
+              <div><label className={LABEL}>Unit ID</label><input type="number" value={form.unit_id} onChange={e => setForm({...form, unit_id: e.target.value})} placeholder="e.g. 101" className={INPUT} /></div>
+              <div><label className={LABEL}>Tenant ID</label><input type="number" value={form.tenant_id} onChange={e => setForm({...form, tenant_id: e.target.value})} placeholder="e.g. 1" className={INPUT} /></div>
+              <div><label className={LABEL}>Category</label><select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className={INPUT}>{["Plumbing","Electrical","HVAC","Appliance","Other"].map(v => <option key={v}>{v}</option>)}</select></div>
+              <div><label className={LABEL}>Priority</label><select value={form.priority} onChange={e => setForm({...form, priority: e.target.value})} className={INPUT}>{["Low","Medium","High","Emergency"].map(v => <option key={v}>{v}</option>)}</select></div>
+              {editReq && <div><label className={LABEL}>Status</label><select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className={INPUT}>{["Open","In Progress","Resolved"].map(v => <option key={v}>{v}</option>)}</select></div>}
+              <div className="col-span-2"><label className={LABEL}>Description</label><textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} placeholder="Describe the issue…" className={INPUT + " resize-none"} /></div>
+              <div className="col-span-2"><label className={LABEL}>Assigned To (optional)</label><input type="text" value={form.assigned_to} onChange={e => setForm({...form, assigned_to: e.target.value})} placeholder="Technician name" className={INPUT} /></div>
+            </div>
+            <div className="sticky bottom-0 bg-[#0e120e] border-t border-[#212521] px-5 py-4 flex gap-2.5 z-10">
+              <button onClick={() => { setAddOpen(false); setEditReq(null); }} className="flex-1 py-2.5 bg-[#1a1f1a] hover:bg-[#212521] text-[#c8c8c8] text-[12px] font-semibold rounded-[8px] transition-colors">Cancel</button>
+              <button onClick={() => editReq ? handleUpdate(editReq.id) : handleCreate()} disabled={saving} className="flex-1 py-2.5 bg-[#2fa872] hover:bg-[#27a065] text-white text-[12px] font-semibold rounded-[8px] flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all">
+                {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} {editReq ? "Save Changes" : "Save Request"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Edit Request Modal ──────────────────────────────────────────────────── */}
-      {editRequest && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100]">
-          <div className="bg-card border border-border w-full sm:max-w-lg sm:rounded-xl rounded-t-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-center pt-3 sm:hidden">
-              <div className="w-10 h-1 bg-border rounded-full" />
+      {/* Delete modal */}
+      {delReq && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-[#0e120e] border border-[#272b27] rounded-[12px] shadow-2xl max-w-sm w-full p-5">
+            <div className="w-10 h-10 bg-[rgba(220,38,38,0.1)] border border-[rgba(220,38,38,0.2)] rounded-[10px] flex items-center justify-center mb-4">
+              <Trash2 size={18} className="text-red-400" />
             </div>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground">Edit Request #{editRequest.id}</h2>
-              <button 
-                onClick={() => setEditRequest(null)} 
-                className="w-8 h-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="px-6 py-5 grid grid-cols-2 gap-4">
-              {([
-                { label: "Unit ID", key: "unit_id", type: "number", ph: "e.g. 101" },
-                { label: "Tenant ID", key: "tenant_id", type: "number", ph: "e.g. 1" },
-              ] as const).map((f) => (
-                <div key={f.key}>
-                  <label className="block text-sm font-medium text-foreground mb-2">{f.label}</label>
-                  <input
-                    type={f.type}
-                    value={form[f.key] || (editRequest[f.key as keyof MaintenanceRequest]?.toString() ?? "")}
-                    onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                    placeholder={f.ph}
-                    className={inputCls}
-                  />
-                </div>
-              ))}
-              {([
-                { label: "Category", key: "category", opts: [["Plumbing","Plumbing"],["Electrical","Electrical"],["HVAC","HVAC"],["Appliance","Appliance"],["Other","Other"]] },
-                { label: "Priority", key: "priority", opts: [["Low","Low"],["Medium","Medium"],["High","High"],["Emergency","Emergency"]] },
-                { label: "Status", key: "status", opts: [["Open","Open"],["In Progress","In Progress"],["Resolved","Resolved"]] },
-              ] as const).map((f) => (
-                <div key={f.key}>
-                  <label className="block text-sm font-medium text-foreground mb-2">{f.label}</label>
-                  <select 
-                    value={form[f.key] || (editRequest[f.key as keyof MaintenanceRequest]?.toString() ?? "")} 
-                    onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} 
-                    className={inputCls}
-                  >
-                    {f.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                  </select>
-                </div>
-              ))}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-2">Description</label>
-                <textarea
-                  value={form.description || editRequest.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Describe the maintenance issue…"
-                  rows={3}
-                  className={inputCls}
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-2">Assigned To (Optional)</label>
-                <input
-                  type="text"
-                  value={form.assigned_to || editRequest.assigned_to || ""}
-                  onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}
-                  placeholder="Technician name"
-                  className={inputCls}
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-border flex gap-3 bg-muted/30">
-              <button 
-                onClick={() => setEditRequest(null)} 
-                className="flex-1 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleUpdate(editRequest.id, form)}
-                disabled={saving}
-                className="flex-1 py-2.5 bg-primary rounded-lg text-sm font-medium text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm transition-all"
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Delete Confirm Modal ────────────────────────────────────────────────── */}
-      {delRequest && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] px-4">
-          <div className="bg-card border border-border rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div className="w-12 h-12 bg-destructive/10 rounded-lg flex items-center justify-center mb-4">
-              <Trash2 size={22} className="text-destructive" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Delete Request #{delRequest.id}?</h3>
-            <div className="text-sm text-muted-foreground mb-2">
-              <span className="font-medium text-foreground">Unit {delRequest.unit_id}</span> — {delRequest.description.substring(0, 60)}{delRequest.description.length > 60 ? '...' : ''}
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              This action cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setDelRequest(null)} 
-                className="flex-1 py-2.5 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(delRequest.id)}
-                disabled={saving}
-                className="flex-1 py-2.5 bg-destructive rounded-lg text-sm font-medium text-destructive-foreground hover:bg-destructive/90 flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm transition-all"
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                Delete
+            <h3 className="text-[14px] font-semibold text-[#f0f0f0] mb-1">Delete Request #{delReq.id}?</h3>
+            <p className="text-[12px] text-[#808080] mb-5">Unit {delReq.unit_id} — {delReq.description.substring(0, 60)}{delReq.description.length > 60 ? "…" : ""}. This cannot be undone.</p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setDelReq(null)} className="flex-1 py-2.5 bg-[#1a1f1a] text-[#c8c8c8] text-[12px] font-semibold rounded-[8px]">Cancel</button>
+              <button onClick={() => handleDelete(delReq.id)} disabled={saving} className="flex-1 py-2.5 bg-[rgba(220,38,38,0.15)] border border-[rgba(220,38,38,0.3)] hover:bg-[rgba(220,38,38,0.25)] text-red-400 text-[12px] font-semibold rounded-[8px] flex items-center justify-center gap-2 disabled:opacity-50">
+                {saving ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Delete
               </button>
             </div>
           </div>

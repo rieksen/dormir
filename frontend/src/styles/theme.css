@@ -1,87 +1,90 @@
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Dormir Dark Theme — adapted from LinkGuard aesthetic ─── */
 :root {
-  --font-size: 15px;
-  --background: #F6F9FC;
-  --foreground: #1A1F36;
-  --card: #ffffff;
-  --card-foreground: #1A1F36;
-  --popover: #ffffff;
-  --popover-foreground: #1A1F36;
-  --primary: #635BFF;
+  --font-size: 14px;
+
+  /* Always dark — no light mode */
+  --background: #060d08;
+  --foreground: #f0f0f0;
+  --card: #141714;
+  --card-foreground: #f0f0f0;
+  --popover: #1a1f1a;
+  --popover-foreground: #f0f0f0;
+  --primary: #2fa872;
   --primary-foreground: #ffffff;
-  --secondary: #F4F6F8;
-  --secondary-foreground: #1A1F36;
-  --muted: #F4F6F8;
-  --muted-foreground: #4F5B76;
-  --accent: #F0F0FF;
-  --accent-foreground: #635BFF;
-  --destructive: #DF1B41;
+  --secondary: #1a1f1a;
+  --secondary-foreground: #c8c8c8;
+  --muted: #1a1f1a;
+  --muted-foreground: #808080;
+  --accent: #1f381f;
+  --accent-foreground: #2fa872;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.06);
-  --input: transparent;
-  --input-background: #F8FAFC;
-  --switch-background: #E3E8EE;
-  --font-weight-medium: 600;
+  --border: #212521;
+  --input: #1a1f1a;
+  --input-background: #1a1f1a;
+  --switch-background: #2c2e2d;
+  --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: rgba(99, 91, 255, 0.3);
-  --chart-1: #635BFF;
-  --chart-2: #00D4B2;
-  --chart-3: #FFB600;
-  --chart-4: #8F30FF;
-  --chart-5: #FF5E84;
-  --radius: 0.5rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #4F5B76;
-  --sidebar-primary: #635BFF;
+  --ring: rgba(47, 168, 114, 0.35);
+  --chart-1: #2fa872;
+  --chart-2: #34d399;
+  --chart-3: #a3e635;
+  --chart-4: #60a5fa;
+  --chart-5: #f59e0b;
+  --radius: 0.625rem;
+
+  --sidebar: #0e120e;
+  --sidebar-foreground: #a0a8a0;
+  --sidebar-primary: #2fa872;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #F0F0FF;
-  --sidebar-accent-foreground: #635BFF;
-  --sidebar-border: rgba(0, 0, 0, 0.06);
-  --sidebar-ring: rgba(99, 91, 255, 0.3);
+  --sidebar-accent: #1f381f;
+  --sidebar-accent-foreground: #2fa872;
+  --sidebar-border: #212521;
+  --sidebar-ring: rgba(47, 168, 114, 0.35);
 }
 
+/* Mirror all vars into dark class for shadcn compatibility */
 .dark {
-  --background: #0B0E14;
-  --foreground: #E3E8EE;
-  --card: #151922;
-  --card-foreground: #E3E8EE;
-  --popover: #151922;
-  --popover-foreground: #E3E8EE;
-  --primary: #7970FF;
+  --background: #060d08;
+  --foreground: #f0f0f0;
+  --card: #141714;
+  --card-foreground: #f0f0f0;
+  --popover: #1a1f1a;
+  --popover-foreground: #f0f0f0;
+  --primary: #2fa872;
   --primary-foreground: #ffffff;
-  --secondary: #1F2633;
-  --secondary-foreground: #E3E8EE;
-  --muted: #1F2633;
-  --muted-foreground: #A3ACB9;
-  --accent: #1B1E36;
-  --accent-foreground: #C4B5FD;
-  --destructive: #EF4444;
+  --secondary: #1a1f1a;
+  --secondary-foreground: #c8c8c8;
+  --muted: #1a1f1a;
+  --muted-foreground: #808080;
+  --accent: #1f381f;
+  --accent-foreground: #2fa872;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: #1F2633;
-  --input-background: #1F2633;
-  --switch-background: #2D3748;
-  --font-weight-medium: 600;
-  --font-weight-normal: 400;
-  --ring: rgba(121, 112, 255, 0.4);
-  --chart-1: #7970FF;
-  --chart-2: #34D399;
-  --chart-3: #FBBF24;
-  --chart-4: #A78BFA;
-  --chart-5: #F472B6;
-  --sidebar: #0D111A;
-  --sidebar-foreground: #A3ACB9;
-  --sidebar-primary: #7970FF;
+  --border: #212521;
+  --input: #1a1f1a;
+  --input-background: #1a1f1a;
+  --switch-background: #2c2e2d;
+  --ring: rgba(47, 168, 114, 0.35);
+  --chart-1: #2fa872;
+  --chart-2: #34d399;
+  --chart-3: #a3e635;
+  --chart-4: #60a5fa;
+  --chart-5: #f59e0b;
+  --sidebar: #0e120e;
+  --sidebar-foreground: #a0a8a0;
+  --sidebar-primary: #2fa872;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1B1E36;
-  --sidebar-accent-foreground: #C4B5FD;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-ring: rgba(121, 112, 255, 0.4);
+  --sidebar-accent: #1f381f;
+  --sidebar-accent-foreground: #2fa872;
+  --sidebar-border: #212521;
+  --sidebar-ring: rgba(47, 168, 114, 0.35);
 }
 
 @theme inline {
-  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-sans: "Geist", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -131,54 +134,21 @@
     @apply bg-background text-foreground;
   }
 
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
   html {
     font-size: var(--font-size);
   }
 
-  h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
+  h1 { font-size: 1.5rem; font-weight: 600; line-height: 1.4; }
+  h2 { font-size: 1.25rem; font-weight: 600; line-height: 1.4; }
+  h3 { font-size: 1.05rem; font-weight: 600; line-height: 1.4; }
+  h4 { font-size: 1rem;    font-weight: 500; line-height: 1.5; }
+  label  { font-size: 0.875rem; font-weight: 500; line-height: 1.5; }
+  button { font-size: 0.875rem; font-weight: 500; line-height: 1.5; }
+  input  { font-size: 0.875rem; font-weight: 400; line-height: 1.5; }
 
-  h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
-  }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #212521; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2fa872; }
 }
